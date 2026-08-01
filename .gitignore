@@ -1,0 +1,14 @@
+# Godot editor cache / import artifacts
+.godot/
+.import/
+*.translation
+
+# Build output
+build/
+
+# Procedurally generated at build time (regenerate via build.sh/build.bat,
+# or by opening the project in the editor once — see README)
+generated_assets/
+
+# OS cruft
+.DS_Store
