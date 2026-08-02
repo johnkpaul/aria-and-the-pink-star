@@ -46,6 +46,10 @@ var ui_manager: UIManager
 var current_world: WorldGenerator
 var _audio_unlocked := false
 var _title_touch_ready := false
+## True from the moment a level flow starts until its World is built. The
+## title screen stays visible for the length of the opening fade, so
+## without this a second tap inside that window runs the whole flow twice.
+var _starting := false
 
 
 func _ready() -> void:
@@ -125,6 +129,8 @@ func _start_birthday_bounce() -> void:
 
 
 func _show_title_screen() -> void:
+	# Back at the title, a fresh run is allowed again.
+	_starting = false
 	_refresh_level_buttons()
 	_cancel_reset_confirm()
 	title_screen.visible = true
@@ -182,9 +188,7 @@ func _on_reset_confirmed() -> void:
 ## title screen is one tap away.
 func _on_menu_requested() -> void:
 	await _fade_transition(func():
-		if current_world:
-			current_world.queue_free()
-			current_world = null
+		_clear_world_container()
 		_hide_level_clear()
 	)
 	_show_title_screen()
@@ -222,6 +226,9 @@ func _on_level_button_pressed(index: int) -> void:
 
 
 func _start_game(level_index: int) -> void:
+	if _starting:
+		return
+	_starting = true
 	if not _audio_unlocked:
 		_audio_unlocked = true
 		ProceduralAudio.unlock_audio()
@@ -266,11 +273,30 @@ func _load_level(index: int) -> void:
 	touch_controls.set_dissolve_highlighted(false)
 	touch_controls.set_reveal_highlighted(false)
 	touch_controls.visible = true
+	_clear_world_container()
 	current_world = WORLD_SCENE.instantiate()
 	world_container.add_child(current_world)
 	current_world.build_level(index)
 	ui_manager.bind_world(current_world)
 	current_world.level_complete.connect(_on_level_complete.bind(index), CONNECT_ONE_SHOT)
+	_starting = false
+
+
+## Tears down any World still in the container before a new one is built.
+## `_load_level` used to simply overwrite `current_world`, which orphaned
+## the previous World *while it was still in the tree* - it kept running,
+## and its Aria kept responding to the joystick. Two players move in
+## lockstep on identical input so it reads as one, right up until a black
+## hole pulls one of them back to its own last safe position and four
+## characters appear at once.
+func _clear_world_container() -> void:
+	for child in world_container.get_children():
+		# Removed as well as queued: queue_free only takes effect at the end
+		# of the frame, and until then the stale player is still in the
+		# "player" group and still wired to the touch controls.
+		world_container.remove_child(child)
+		child.queue_free()
+	current_world = null
 
 
 func _on_level_complete(index: int) -> void:
@@ -282,9 +308,7 @@ func _on_level_complete(index: int) -> void:
 	var is_last: bool = index + 1 >= LevelData.get_level_count()
 	await _fade_transition(func():
 		_hide_level_clear()
-		if current_world:
-			current_world.queue_free()
-			current_world = null
+		_clear_world_container()
 		if is_last:
 			touch_controls.visible = false
 	)

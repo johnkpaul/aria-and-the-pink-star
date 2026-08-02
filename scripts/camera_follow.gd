@@ -27,11 +27,16 @@ var _has_bounds := false
 ## texture far enough off-center to expose empty space at the view's edge.
 var _parallax_base := Vector2.ZERO
 
-const VIEW_SIZE := Vector2(1920, 1080)
+## The level size this camera is currently clamped to, kept so the bounds
+## can be recomputed when the viewport changes shape.
+var _level_size := Vector2.ZERO
 
 
 func _ready() -> void:
 	position_smoothing_enabled = false  # we do our own clamped smoothing
+	# Rotating a phone changes the view's shape, and with it how far the
+	# camera is allowed to travel before it would show past the level edge.
+	get_viewport().size_changed.connect(_recompute_bounds)
 
 
 func set_target(node: Node2D) -> void:
@@ -53,20 +58,33 @@ func _update_parallax() -> void:
 
 
 func set_level_bounds(width_px: float, height_px: float) -> void:
-	var half := VIEW_SIZE / 2.0
-	if width_px <= VIEW_SIZE.x:
-		bounds_min.x = width_px / 2.0
-		bounds_max.x = width_px / 2.0
+	_level_size = Vector2(width_px, height_px)
+	_recompute_bounds()
+
+
+## Derived from the *actual* viewport rather than a hard-coded 1920x1080.
+## `stretch/aspect="expand"` means the view is only that size at exactly
+## 16:9 - held in portrait the logical view is far taller than 1080, and
+## clamping to the old constant let the camera drift well past the top and
+## bottom of the level, showing empty space above and below the play field.
+func _recompute_bounds() -> void:
+	if _level_size == Vector2.ZERO:
+		return
+	var half: Vector2 = get_viewport().get_visible_rect().size / 2.0
+
+	if _level_size.x <= half.x * 2.0:
+		bounds_min.x = _level_size.x / 2.0
+		bounds_max.x = _level_size.x / 2.0
 	else:
 		bounds_min.x = half.x
-		bounds_max.x = width_px - half.x
+		bounds_max.x = _level_size.x - half.x
 
-	if height_px <= VIEW_SIZE.y:
-		bounds_min.y = height_px / 2.0
-		bounds_max.y = height_px / 2.0
+	if _level_size.y <= half.y * 2.0:
+		bounds_min.y = _level_size.y / 2.0
+		bounds_max.y = _level_size.y / 2.0
 	else:
 		bounds_min.y = half.y
-		bounds_max.y = height_px - half.y
+		bounds_max.y = _level_size.y - half.y
 
 	_has_bounds = true
 

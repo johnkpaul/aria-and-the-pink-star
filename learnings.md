@@ -53,6 +53,27 @@ existing codebase into a third, differently-mechanic'd game.
   actually complete before quitting. Worth running once after any bulk-regeneration of
   `generated_assets/`/`imported_assets/` before trusting a subsequent headless smoke test.
 
+## Swapping a level means freeing the old one, not just reassigning the variable
+
+- **`_load_level` built a new World and assigned it to `current_world` without freeing the
+  previous one**, which left the old World *in the scene tree*: still processing, still holding
+  a player that was still connected to the touch-control signals. Two players receiving
+  identical joystick input move in perfect lockstep, so the duplicate is completely invisible -
+  until one of them hits a black hole and gets pulled back to *its own* last safe position, at
+  which point they separate and four characters appear at once. The bug was reported as "a bug
+  from a black hole"; the black hole was only what made an older bug visible.
+- **Reassigning a reference is not cleanup.** `queue_free()` also isn't immediate - it lands at
+  the end of the frame, so anything that must stop responding *now* (group membership, signal
+  connections) needs `remove_child()` alongside it.
+- **A screen-transition guard belongs on the transition, not the widget.** The second load came
+  from a double-tap on the title screen: the fade-out runs for 0.2s before the title is hidden,
+  so a second tap inside that window passed the `title_screen.visible` check and started the
+  whole flow again. Any `await`-ing entry point that a player can trigger twice needs a
+  re-entrancy flag - on a touch screen, the accidental double-tap is the common case, not the
+  edge case.
+- Both halves are worth fixing: the guard stops the usual trigger, and tearing down the
+  container makes *any* future double-load harmless.
+
 ## Get the stretch settings right before hand-placing a single UI element
 
 Three separate on-device problems all traced back to two lines in `project.godot`.
