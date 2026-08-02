@@ -9,10 +9,20 @@ signal menu_requested
 
 const IDLE_HINT_DELAY := 5.0
 
+## How long a collected key takes to fly from where it was picked up to the
+## HUD meter. The meter's fill is delayed to match, so the bar visibly
+## responds to the key *landing* rather than filling on its own beat.
+const FLIGHT_TIME := 0.55
+const FLYER_SIZE := Vector2(96, 96)
+
+const TEX_KEY := preload("res://generated_assets/key.png")
+const TEX_GEM := preload("res://generated_assets/gem.png")
+
 @onready var meter_fill_clip: Control = $KeyMeter/FillClip
 @onready var meter_fill: TextureRect = $KeyMeter/FillClip/Fill
 @onready var idle_hint: TextureRect = $IdleHint
 @onready var menu_button: Button = $MenuButton
+@onready var key_icon: TextureRect = $KeyIcon
 
 var world: WorldGenerator
 var _idle_timer := 0.0
@@ -25,6 +35,7 @@ func _ready() -> void:
 	meter_fill_clip.clip_contents = true
 	idle_hint.texture = load("res://generated_assets/icon_arrow_hint.png")
 	idle_hint.modulate.a = 0.0
+	key_icon.pivot_offset = key_icon.size / 2.0
 
 	menu_button.pressed.connect(func(): menu_requested.emit())
 	menu_button.pressed.connect(func(): ProceduralAudio.play_sfx("ui_tap"))
@@ -39,8 +50,53 @@ func _ready() -> void:
 func bind_world(w: WorldGenerator) -> void:
 	world = w
 	world.key_collected.connect(_on_key_progress)
+	world.collectible_picked_up.connect(_fly_to_meter)
 	_on_key_progress(world.collected_collectibles, maxi(world.total_collectibles, 1), true)
 	_reset_idle()
+
+
+## Sends a copy of the collected key/gem arcing from where it was picked up
+## to the HUD meter. Picking one up used to register only as a bar quietly
+## growing in the corner, which is easy to miss when the pickup happens
+## right under you - this draws an explicit line between the two.
+func _fly_to_meter(world_pos: Vector2, gem: bool) -> void:
+	if not world or not world.camera:
+		return
+	var flyer := TextureRect.new()
+	flyer.texture = TEX_GEM if gem else TEX_KEY
+	flyer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	flyer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	flyer.size = FLYER_SIZE
+	flyer.pivot_offset = FLYER_SIZE / 2.0
+	flyer.position = _world_to_screen(world_pos) - FLYER_SIZE / 2.0
+	add_child(flyer)
+
+	var target: Vector2 = key_icon.position + key_icon.size / 2.0 - FLYER_SIZE / 2.0
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(flyer, "position", target, FLIGHT_TIME) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(flyer, "scale", Vector2(0.5, 0.5), FLIGHT_TIME).set_trans(Tween.TRANS_SINE)
+	tw.chain().tween_callback(func() -> void:
+		flyer.queue_free()
+		_punch_key_icon()
+	)
+
+
+## Camera2D has no `unproject_position()` - that's Camera3D only, and
+## calling it throws "Nonexistent function". The viewport's canvas
+## transform is what maps world space to screen space under a 2D camera.
+## The idle-hint code had been calling the Camera3D method since it was
+## written, so it threw every frame the hint was on screen and left the
+## arrow parked whereever it happened to be.
+func _world_to_screen(world_pos: Vector2) -> Vector2:
+	return get_viewport().get_canvas_transform() * world_pos
+
+
+func _punch_key_icon() -> void:
+	var tw := create_tween()
+	tw.tween_property(key_icon, "scale", Vector2(1.45, 1.45), 0.11).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(key_icon, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_SINE)
 
 
 ## `instant` is used for the initial bind at level load. The meter's clip
@@ -55,7 +111,7 @@ func _on_key_progress(collected: int, total: int, instant: bool = false) -> void
 		meter_fill_clip.size.x = target
 		return
 	var tw := create_tween()
-	tw.tween_property(meter_fill_clip, "size:x", target, 0.25)
+	tw.tween_property(meter_fill_clip, "size:x", target, 0.25).set_delay(FLIGHT_TIME)
 
 
 func _process(delta: float) -> void:
@@ -127,6 +183,6 @@ func _update_hint_position() -> void:
 		dir = Vector2.RIGHT
 	dir = dir.normalized()
 
-	var screen_player: Vector2 = world.camera.unproject_position(player_pos)
+	var screen_player: Vector2 = _world_to_screen(player_pos)
 	idle_hint.position = screen_player + dir * 96.0 - idle_hint.size / 2.0
 	idle_hint.rotation = dir.angle() + PI / 2.0

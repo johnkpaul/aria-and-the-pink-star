@@ -6,7 +6,7 @@ class_name Collectible
 ## _find_nearest_hidden/reveal), at which point it fades in, starts
 ## pulsing, and becomes collectible on contact like any pickup.
 
-signal collected(gem: bool)
+signal collected(gem: bool, world_pos: Vector2)
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var shape: CollisionShape2D = $CollisionShape2D
@@ -49,14 +49,36 @@ func is_revealed() -> bool:
 	return _revealed
 
 
+## Collision is deliberately withheld until the fade-in finishes. Enabling
+## it up front meant that revealing a key you were already standing on
+## collected it instantly, while the sprite was still at alpha ~0 - so the
+## key was picked up without ever being seen, and the whole find-and-grab
+## beat collapsed into one indistinguishable instant. Now it visibly
+## appears first, then becomes grabbable.
 func reveal() -> void:
 	if _revealed:
 		return
 	_revealed = true
-	monitoring = true
 	var tw := create_tween()
 	tw.tween_property(self, "modulate:a", 1.0, 0.35)
+	tw.tween_callback(_enable_pickup)
 	_start_pulse()
+
+
+func _enable_pickup() -> void:
+	if _collected:
+		return
+	monitoring = true
+	# Godot only emits body_entered on an actual crossing, so a player
+	# already sitting inside the area when monitoring switches on would
+	# never trigger it. Check the standing overlap explicitly.
+	await get_tree().physics_frame
+	if _collected or not is_instance_valid(self):
+		return
+	for body in get_overlapping_bodies():
+		if body.is_in_group("player"):
+			_on_body_entered(body)
+			return
 
 
 func _start_pulse() -> void:
@@ -71,7 +93,7 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 	_collected = true
 	_spawn_burst()
-	collected.emit(_gem)
+	collected.emit(_gem, global_position)
 	set_deferred("monitoring", false)
 	var tw := create_tween()
 	tw.set_parallel(true)

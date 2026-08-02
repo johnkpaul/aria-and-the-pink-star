@@ -9,6 +9,9 @@ class_name WorldGenerator
 signal all_keys_collected
 signal level_complete
 signal key_collected(collected: int, total: int)
+## Carries where in the world the pickup happened, so the HUD can fly a key
+## from that spot up to the meter (see ui_manager.gd).
+signal collectible_picked_up(world_pos: Vector2, gem: bool)
 
 const TILE_SIZE := LevelData.TILE_SIZE
 
@@ -155,9 +158,10 @@ func _spawn_collectible(cell: Vector2i, gem: bool) -> void:
 	total_collectibles += 1
 
 
-func _on_collectible_collected(_gem: bool) -> void:
+func _on_collectible_collected(gem: bool, world_pos: Vector2) -> void:
 	collected_collectibles += 1
 	key_collected.emit(collected_collectibles, total_collectibles)
+	collectible_picked_up.emit(world_pos, gem)
 	ProceduralAudio.play_sfx("key")
 	if camera:
 		camera.shake(4.0)

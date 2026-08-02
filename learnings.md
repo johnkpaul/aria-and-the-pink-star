@@ -53,6 +53,45 @@ existing codebase into a third, differently-mechanic'd game.
   actually complete before quitting. Worth running once after any bulk-regeneration of
   `generated_assets/`/`imported_assets/` before trusting a subsequent headless smoke test.
 
+## `Camera2D` has no `unproject_position()`
+
+- **That method is Camera3D-only.** Calling it on a Camera2D throws "Invalid call. Nonexistent
+  function", and because the only caller was the idle-hint arrow's per-frame position update,
+  it failed silently in the sense that nothing crashed the game - the hint just never moved
+  from wherever it happened to be, and the errors went to a console nobody was reading during
+  on-device testing. It had been wrong since the hint was written.
+- **The 2D equivalent is the viewport's canvas transform:**
+  `get_viewport().get_canvas_transform() * world_pos`. Verify it numerically rather than by
+  eye - moving a point +600 world units right should move it +600 screen px at zoom 1, which is
+  a two-line check that would have caught the original bug immediately.
+- Found only because a *new* feature (flying a collected key to the HUD) needed the same
+  world→screen conversion and was exercised in a headless test that surfaced the error. Reusing
+  a broken helper is a good way to finally discover it's broken.
+
+## Don't let a "find it" beat and a "get it" beat collapse into one frame
+
+- **Revealing a collectible enabled its collision at the same moment it started fading in**, so
+  revealing a key you were already standing on collected it instantly, at alpha ~0. The player
+  got no key sprite, no visible pickup - just a bar quietly growing in a corner of the HUD.
+  Both halves worked correctly in isolation; the bug was that they happened simultaneously.
+- The fix is to **withhold collision until the reveal animation finishes**, so the object
+  visibly exists before it can be taken. And when enabling `monitoring` on an Area2D that a
+  body may *already* be standing inside, `body_entered` won't fire (it only reports crossings) -
+  check `get_overlapping_bodies()` explicitly after a physics frame.
+- **Reward feedback should trace a path, not just update a number.** Flying a copy of the key
+  from the pickup point to the HUD meter, and delaying the meter's fill until it lands, turns
+  two disconnected events into one legible cause-and-effect.
+
+## A control the player can't see is a control they don't know exists
+
+- **The virtual joystick was fully transparent until touched.** For anyone who hadn't played a
+  twin-stick-style game before - the actual target audience here - nothing on screen suggested
+  flying was possible at all. It now rests visibly (dimmed) at its parked spot, returns there
+  on release instead of fading away, and traces a slow looping orbit until the first real drag
+  to demonstrate the gesture. Touch-anywhere still works; only the discoverability changed.
+- A tutorial card saying "DRAG TO FLY" is not a substitute for the control being visible during
+  play - the card is gone in seconds and never shown again.
+
 ## An emitted signal nobody connected is a missing feature, not dead code
 
 - **`all_keys_collected` was emitted correctly and had zero listeners**, which meant the one

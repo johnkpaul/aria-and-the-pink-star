@@ -384,33 +384,134 @@ static func _make_portal() -> Image:
 # Touch controls
 # ---------------------------------------------------------------------------
 
+## The joystick ring. Now that it's parked visibly on screen at rest (see
+## touch_controls.gd) rather than only appearing under a finger, it has to
+## hold up as a real object: a translucent well that darkens toward the
+## middle, with a rim lit from the top-left to match the action buttons.
 static func _make_joystick_base() -> Image:
-	var img := _new_image(120, 120)
-	var c := 60.0
-	var col := SPACE_PURPLE
-	col.a = 0.55
-	_fill_circle(img, c, c, 58, col)
-	var border := LIGHT_PINK
-	border.a = 0.6
-	_stroke_circle(img, c, c, 58, 3, border)
+	const SIZE := 120
+	const C := 60.0
+	const R := 57.0
+	const RIM := 3.0
+	var img := _new_image(SIZE, SIZE)
+
+	for py in range(SIZE * SCALE):
+		for px in range(SIZE * SCALE):
+			var x: float = (px + 0.5) / SCALE
+			var y: float = (py + 0.5) / SCALE
+			var dx: float = x - C
+			var dy: float = y - C
+			var r: float = sqrt(dx * dx + dy * dy)
+			if r > R:
+				continue
+
+			var col: Color
+			if r > R - RIM:
+				var lit: float = clampf(1.0 - (dx + dy) / (2.0 * R), 0.0, 1.0)
+				col = LIGHT_PINK.lerp(STAR_WHITE, lit * 0.4)
+				col.a = 0.85
+			else:
+				# Concave well: darkest at the center, so the thumb reads as
+				# sitting inside it rather than on top of a flat disc.
+				var depth: float = 1.0 - clampf(r / (R - RIM), 0.0, 1.0)
+				col = SPACE_PURPLE.lerp(VOID_BLACK, depth * 0.45)
+				col.a = 0.30 + depth * 0.22
+			img.set_pixel(px, py, col)
 	return img
 
 
+## The joystick knob - a glossy ball with a specular highlight and a darker
+## underside, so it reads as something physically grabbable.
 static func _make_joystick_thumb() -> Image:
-	var img := _new_image(60, 60)
-	var c := 30.0
-	_fill_circle(img, c, c, 28, PINK)
-	_stroke_circle(img, c, c, 20, 3, STAR_WHITE)
+	const SIZE := 60
+	const C := 30.0
+	const R := 28.0
+	var img := _new_image(SIZE, SIZE)
+	var top_col := Color8(0xFF, 0xA8, 0xE0)
+	var bot_col := Color8(0xB0, 0x2A, 0x7C)
+
+	for py in range(SIZE * SCALE):
+		for px in range(SIZE * SCALE):
+			var x: float = (px + 0.5) / SCALE
+			var y: float = (py + 0.5) / SCALE
+			var dx: float = x - C
+			var dy: float = y - C
+			var r: float = sqrt(dx * dx + dy * dy)
+			if r > R:
+				continue
+
+			var t: float = clampf((y - (C - R)) / (2.0 * R), 0.0, 1.0)
+			var col: Color = top_col.lerp(bot_col, t)
+
+			var sy: float = y - (C - 11.0)
+			var sd: float = sqrt(dx * dx * 0.6 + sy * sy)
+			var spec: float = clampf(1.0 - sd / 15.0, 0.0, 1.0)
+			col = col.lerp(STAR_WHITE, spec * spec * 0.55)
+
+			# Bright edge all the way round keeps it legible against both
+			# the dark well and open space.
+			if r > R - 2.5:
+				col = col.lerp(LIGHT_PINK, 0.7)
+			col.a = 1.0
+			img.set_pixel(px, py, col)
 	return img
 
 
+## The two big action buttons (FIND / MELT). Drawn per-pixel rather than as
+## two stacked flat circles: a vertical gradient, a soft specular highlight
+## near the top, a rim that catches light from above, contact shading along
+## the bottom inside edge, and an outer glow. The flat two-tone disc this
+## replaced read as a placeholder next to the rest of the art.
 static func _make_button_base() -> Image:
-	var img := _new_image(100, 100)
-	var c := 50.0
-	var fill := DARK_PINK
-	fill.a = 0.75
-	_fill_circle(img, c, c, 48, fill)
-	_stroke_circle(img, c, c, 48, 4, LIGHT_PINK)
+	const SIZE := 100
+	const C := 50.0
+	const R := 45.0
+	const RIM := 3.5
+	const GLOW := 5.0
+	var img := _new_image(SIZE, SIZE)
+	var top_col := Color8(0xFF, 0x9A, 0xDC)
+	var bot_col := Color8(0x8E, 0x1B, 0x63)
+
+	for py in range(SIZE * SCALE):
+		for px in range(SIZE * SCALE):
+			var x: float = (px + 0.5) / SCALE
+			var y: float = (py + 0.5) / SCALE
+			var dx: float = x - C
+			var dy: float = y - C
+			var r: float = sqrt(dx * dx + dy * dy)
+			if r > R + GLOW:
+				continue
+
+			if r > R:
+				var g: float = 1.0 - (r - R) / GLOW
+				var gc := PINK
+				gc.a = 0.30 * g * g
+				img.set_pixel(px, py, gc)
+				continue
+
+			var col: Color
+			if r > R - RIM:
+				# Rim reads as lit from the top-left, which is what sells it
+				# as a raised disc rather than a flat ring.
+				var lit: float = clampf(1.0 - (dx + dy) / (2.0 * R), 0.0, 1.0)
+				col = LIGHT_PINK.lerp(STAR_WHITE, lit * 0.45)
+				col.a = 1.0
+			else:
+				var t: float = clampf((y - (C - R)) / (2.0 * R), 0.0, 1.0)
+				col = top_col.lerp(bot_col, t)
+
+				var sy: float = y - (C - 18.0)
+				var sd: float = sqrt(dx * dx * 0.55 + sy * sy)
+				var spec: float = clampf(1.0 - sd / 26.0, 0.0, 1.0)
+				col = col.lerp(STAR_WHITE, spec * spec * 0.35)
+
+				# Ramped by `down` rather than gated on `dy > 0`, which left a
+				# hard horizontal seam straight across the disc's midline.
+				var down: float = clampf(dy / R, 0.0, 1.0)
+				var edge: float = clampf((r - (R - RIM - 10.0)) / 10.0, 0.0, 1.0)
+				col = col.lerp(bot_col.darkened(0.35), edge * down * 0.6)
+				col.a = 0.95
+			img.set_pixel(px, py, col)
 	return img
 
 
