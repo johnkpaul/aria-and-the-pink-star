@@ -23,6 +23,33 @@ const BOUNDS_MARGIN := 40.0
 const MAX_BANK := 0.22
 const BANK_SPEED := 7.0
 
+## Aria is the title character but renders small on the device this is
+## actually played on: 1080 logical units map to roughly 393 CSS px of
+## phone height in landscape, putting her 128px sprite at about 47 px on
+## screen - and half that in portrait. Scaling is applied here rather than
+## in the scene because squash-and-stretch rewrites the same property every
+## frame. The collision shape is deliberately left at its authored size, so
+## she reads bigger without making hazards harder to dodge.
+const ARIA_SCALE := 1.5
+const SIDEKICK_SCALE := 0.9
+
+## Peak squash/stretch at full speed - stretched along the direction of
+## travel and squashed across it. On a sprite with no animation frames this
+## is what sells movement as movement.
+const STRETCH_MAX := 0.13
+const STRETCH_SMOOTH := 8.0
+
+## A sparkle wake, shed while flying fast enough to warrant one. Reuses the
+## pickup burst's mote texture.
+## Sized and timed to read as a continuous wake at the scale this actually
+## renders on a phone - roughly a third of the design resolution. Shorter
+## or smaller than this and it registers as an occasional flicker rather
+## than a trail.
+const TEX_SPARKLE := preload("res://generated_assets/sparkle.png")
+const TRAIL_MIN_SPEED := 0.3
+const TRAIL_INTERVAL := 0.045
+const TRAIL_LIFETIME := 1.0
+
 const TEX_ARIA := preload("res://imported_assets/aria_sprite.png")
 const TEX_REVEAL_PULSE := preload("res://generated_assets/reveal_pulse.png")
 
@@ -40,6 +67,8 @@ var last_safe_position := Vector2.ZERO
 var _current_trap: Node2D
 var _bob_timer := 0.0
 var _near_hidden := false
+var _stretch := 0.0
+var _trail_timer := 0.0
 
 
 func _ready() -> void:
@@ -180,6 +209,44 @@ func _physics_process(delta: float) -> void:
 
 	_update_reveal_highlight()
 	_update_visuals(delta, absf(move_input.x) > 0.05 or absf(move_input.y) > 0.05)
+	_update_trail(delta)
+
+
+## Drops a sparkle behind Aria while she's moving with purpose. Motes are
+## parented to the world rather than to her, so each one stays where it was
+## shed and the wake trails behind instead of riding along with her.
+func _update_trail(delta: float) -> void:
+	if state != State.NORMAL:
+		return
+	if velocity.length() / SPEED < TRAIL_MIN_SPEED:
+		return
+
+	_trail_timer -= delta
+	if _trail_timer > 0.0:
+		return
+	_trail_timer = TRAIL_INTERVAL
+
+	var parent := get_parent()
+	if not parent:
+		return
+
+	var mote := Sprite2D.new()
+	mote.texture = TEX_SPARKLE
+	# Behind the pair, but still above the parallax backdrop.
+	mote.z_index = -1
+	mote.global_position = global_position \
+		- velocity.normalized() * 46.0 \
+		+ Vector2(randf_range(-14.0, 14.0), randf_range(-14.0, 14.0))
+	var s: float = randf_range(1.0, 1.5)
+	mote.scale = Vector2(s, s)
+	mote.modulate.a = 0.8
+	parent.add_child(mote)
+
+	var tw := mote.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(mote, "scale", Vector2.ZERO, TRAIL_LIFETIME).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(mote, "modulate:a", 0.0, TRAIL_LIFETIME).set_trans(Tween.TRANS_QUAD)
+	tw.chain().tween_callback(mote.queue_free)
 
 
 func _update_reveal_highlight() -> void:
@@ -202,12 +269,29 @@ func _clamp_to_bounds() -> void:
 func _update_visuals(delta: float, moving: bool) -> void:
 	if absf(move_input.x) > 0.05:
 		facing = 1 if move_input.x > 0.0 else -1
-	sprite.scale.x = absf(sprite.scale.x) * facing
-	if sidekick:
-		sidekick.scale.x = absf(sidekick.scale.x) * facing
 
 	_bob_timer += delta * (5.0 if moving else 2.0)
-	sprite.position.y = sin(_bob_timer) * 4.0
+	sprite.position.y = sin(_bob_timer) * 5.0
+
+	# Stretched along the axis she's travelling and squashed across it, so
+	# the same still image reads as moving fast horizontally or climbing.
+	# Eased rather than applied directly, or it snaps on every stick flick.
+	var target_stretch := 0.0
+	if state == State.NORMAL and velocity.length() > 1.0:
+		var dir := velocity.normalized()
+		var speed_t: float = clampf(velocity.length() / SPEED, 0.0, 1.0)
+		target_stretch = speed_t * STRETCH_MAX * (absf(dir.x) - absf(dir.y))
+	_stretch = lerpf(_stretch, target_stretch, clampf(STRETCH_SMOOTH * delta, 0.0, 1.0))
+
+	sprite.scale = Vector2(
+		ARIA_SCALE * (1.0 + _stretch) * facing,
+		ARIA_SCALE * (1.0 - _stretch)
+	)
+	if sidekick:
+		sidekick.scale = Vector2(
+			SIDEKICK_SCALE * (1.0 + _stretch) * facing,
+			SIDEKICK_SCALE * (1.0 - _stretch)
+		)
 
 	# `facing` flips the sprite via a negative scale.x, and Godot applies
 	# rotation *after* scale - so the same angle would tilt her the wrong

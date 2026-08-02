@@ -10,9 +10,11 @@ size = Vector2(72, 88)
 [node name="Player" type="CharacterBody2D"]
 script = ExtResource("1")
 
+; Offset scaled with Aria (x1.5) so the pair keeps its original spacing at
+; the larger size. Both sprites' scales are driven from player.gd, which
+; rewrites them every frame for squash-and-stretch.
 [node name="Sidekick" type="Sprite2D" parent="."]
-position = Vector2(-56, 12)
-scale = Vector2(0.6, 0.6)
+position = Vector2(-84, 18)
 texture = ExtResource("3")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
