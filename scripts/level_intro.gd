@@ -32,15 +32,16 @@ func _ready() -> void:
 	bg.color = BG_COLOR
 	bg.size = Vector2(1920, 1080)
 	add_child(bg)
+	UILayout.keep_centered(self, [bg])
 
 	_title_label = Label.new()
 	_title_label.offset_left = 160
-	_title_label.offset_top = 320
+	_title_label.offset_top = 310
 	_title_label.offset_right = 1760
-	_title_label.offset_bottom = 440
+	_title_label.offset_bottom = 450
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_title_label.add_theme_font_size_override("font_size", 80)
+	_title_label.add_theme_font_size_override("font_size", 100)
 	_title_label.add_theme_color_override("font_color", TITLE_COLOR)
 	add_child(_title_label)
 
@@ -52,7 +53,7 @@ func _ready() -> void:
 	_story_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_story_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_story_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	_story_label.add_theme_font_size_override("font_size", 44)
+	_story_label.add_theme_font_size_override("font_size", 56)
 	_story_label.add_theme_color_override("font_color", STORY_COLOR)
 	add_child(_story_label)
 
@@ -60,11 +61,11 @@ func _ready() -> void:
 	# Kept centered on x=960, but narrow - `icon_alignment = RIGHT` pins the
 	# arrow to the button's right edge, so a wide button strands it in empty
 	# space far from the word.
-	_start_button.offset_left = 830
+	_start_button.offset_left = 810
 	_start_button.offset_top = 900
-	_start_button.offset_right = 1090
+	_start_button.offset_right = 1110
 	_start_button.offset_bottom = 990
-	_start_button.add_theme_font_size_override("font_size", 44)
+	_start_button.add_theme_font_size_override("font_size", 56)
 	_start_button.add_theme_color_override("font_color", START_COLOR)
 	_start_button.flat = true
 	# Arrow is an icon, not a "▶" in the text - the built-in font has no

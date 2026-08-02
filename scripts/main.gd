@@ -50,6 +50,7 @@ var _title_touch_ready := false
 
 func _ready() -> void:
 	_ensure_generated_assets()
+	_center_ui_layers()
 
 	version_label.text = "v" + GameManager.BUILD_VERSION
 
@@ -84,6 +85,17 @@ func _ready() -> void:
 		btn.pressed.connect(_play_ui_tap)
 
 	_show_title_screen()
+
+
+## TouchControls and UIManager are deliberately absent here: their contents
+## are anchored to the screen edges already, so they're correct at any
+## viewport size and shifting them would pull the action buttons and HUD
+## inward off their corners.
+func _center_ui_layers() -> void:
+	UILayout.keep_centered(title_screen, [$TitleScreen/Background])
+	UILayout.keep_centered(level_clear_overlay, [$LevelClearOverlay/Background])
+	UILayout.keep_centered(version_tag)
+	UILayout.keep_centered($ScreenFader, [screen_fader])
 
 
 func _play_ui_tap() -> void:

@@ -59,6 +59,7 @@ func _ready() -> void:
 	bg.color = BG_COLOR
 	bg.size = Vector2(1920, 1080)
 	add_child(bg)
+	UILayout.keep_centered(self, [bg])
 
 	for i in range(2):
 		var rect := TextureRect.new()
@@ -72,12 +73,12 @@ func _ready() -> void:
 
 	_caption = Label.new()
 	_caption.offset_left = 160
-	_caption.offset_top = 700
+	_caption.offset_top = 686
 	_caption.offset_right = 1760
-	_caption.offset_bottom = 820
+	_caption.offset_bottom = 848
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_caption.add_theme_font_size_override("font_size", 72)
+	_caption.add_theme_font_size_override("font_size", 88)
 	_caption.add_theme_color_override("font_color", CAPTION_COLOR)
 	_caption.modulate.a = 0.0
 	add_child(_caption)
@@ -85,11 +86,11 @@ func _ready() -> void:
 	_next_button = Button.new()
 	# Narrow and centered on x=960 - see the matching note in level_intro.gd
 	# about `icon_alignment = RIGHT` stranding the arrow on a wide button.
-	_next_button.offset_left = 830
+	_next_button.offset_left = 810
 	_next_button.offset_top = 960
-	_next_button.offset_right = 1090
+	_next_button.offset_right = 1110
 	_next_button.offset_bottom = 1056
-	_next_button.add_theme_font_size_override("font_size", 44)
+	_next_button.add_theme_font_size_override("font_size", 56)
 	_next_button.add_theme_color_override("font_color", HINT_COLOR)
 	_next_button.flat = true
 	# Arrow is an icon, not a "▶" in the text - the built-in font has no

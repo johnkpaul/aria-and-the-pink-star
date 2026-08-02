@@ -28,6 +28,11 @@ func _ready() -> void:
 	layer = 20
 	visible = false
 	scene_art.texture = load("res://generated_assets/mission_scene.png")
+	# Cropped to fill rather than stretched, so the backdrop still reaches
+	# the edges of a wider-than-16:9 screen without distorting the artwork.
+	scene_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	scene_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	UILayout.keep_centered(self, [scene_art])
 
 	_texts = [
 		"THE PINK GEM GLOWS!",

@@ -55,8 +55,31 @@ var _portal_sprite: Sprite2D
 var _portal_tween: Tween
 
 
+## Extra scale beyond "just covers the viewport", so the slow parallax
+## drift (see camera_follow.gd) can't pull an edge of the backdrop into
+## view at the extremes of a level.
+const BACKGROUND_COVER_MARGIN := 1.15
+
+
 func _ready() -> void:
 	add_to_group("world")
+	# Auto-disconnects when this world is freed between levels, since Godot
+	# drops connections whose receiving object is gone.
+	get_viewport().size_changed.connect(_fit_background)
+
+
+## The backdrop is a fixed 1920x1080 texture, but `stretch/aspect="expand"`
+## makes the logical viewport wider than 1920 on anything wider than 16:9 -
+## an iPhone in landscape left bare strips down both sides of the world.
+func _fit_background() -> void:
+	if not background or not background.texture:
+		return
+	var vp := get_viewport().get_visible_rect().size
+	var tex := Vector2(background.texture.get_size())
+	if tex.x <= 0.0 or tex.y <= 0.0:
+		return
+	var s: float = maxf(vp.x / tex.x, vp.y / tex.y) * BACKGROUND_COVER_MARGIN
+	background.scale = Vector2(s, s)
 
 
 func build_level(index: int) -> void:
@@ -72,6 +95,7 @@ func build_level(index: int) -> void:
 
 	if background:
 		background.modulate = ZONE_TINTS[level_index % ZONE_TINTS.size()]
+		_fit_background()
 
 	camera.set_level_bounds(level_width * TILE_SIZE, level_height * TILE_SIZE)
 	camera.set_target(player)

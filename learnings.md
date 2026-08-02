@@ -53,6 +53,35 @@ existing codebase into a third, differently-mechanic'd game.
   actually complete before quitting. Worth running once after any bulk-regeneration of
   `generated_assets/`/`imported_assets/` before trusting a subsequent headless smoke test.
 
+## Get the stretch settings right before hand-placing a single UI element
+
+Three separate on-device problems all traced back to two lines in `project.godot`.
+
+- **`stretch/mode="viewport"` renders the whole game into a fixed 1920x1080 buffer and
+  downsamples it to the screen.** On a modern phone - an iPhone 16 is a 3x-density display -
+  that throws away most of the panel's resolution and makes text soft on top of small. For a
+  game whose UI is mostly text, **`canvas_items` is the right mode**: geometry is scaled but
+  glyphs are rasterised at native device resolution. This was the single biggest legibility
+  win, and it's a one-word change.
+- **`stretch/aspect="expand"` grows the *logical* viewport on any screen wider than the design
+  aspect.** 1920x1080 is 1.78:1; an iPhone 16 in landscape is ~2.17:1, so the logical space
+  becomes ~2340x1080. Anything positioned with absolute offsets against an assumed 1920 width
+  - which was every screen here - ends up left of centre with a dead strip down the right, and
+  it gets worse the wider the device. It's invisible at desktop aspect ratios, which is exactly
+  why it survived so long.
+- **The same assumption breaks full-screen rects.** Backdrops, the dim overlay and the screen
+  fader were all 1920x1080 `ColorRect`s, so on a wide viewport they stopped short of the edge -
+  the fader failed to cover the screen it was supposed to be fading. The world's background
+  sprite had the identical problem, leaving bare strips down both sides of the level.
+- Rather than re-anchor dozens of nodes, shifting each UI `CanvasLayer` by
+  `(viewport - 1920x1080) / 2` re-centres a whole authored canvas in one line, and rects that
+  must reach the edges get stretched to the real viewport explicitly. Layers whose contents are
+  genuinely edge-anchored (the HUD, the touch controls) must be left alone or their corners
+  pull inward.
+- **Test at the target device's aspect ratio, not just its pixel count.** Every one of these was
+  invisible in a 1200x700 desktop browser and obvious the moment the window was resized to
+  852x393. Driving the real build at phone dimensions costs one flag (`--window-size`).
+
 ## `Camera2D` has no `unproject_position()`
 
 - **That method is Camera3D-only.** Calling it on a Camera2D throws "Invalid call. Nonexistent
