@@ -53,6 +53,49 @@ existing codebase into a third, differently-mechanic'd game.
   actually complete before quitting. Worth running once after any bulk-regeneration of
   `generated_assets/`/`imported_assets/` before trusting a subsequent headless smoke test.
 
+## An emitted signal nobody connected is a missing feature, not dead code
+
+- **`all_keys_collected` was emitted correctly and had zero listeners**, which meant the one
+  moment the level's goal changes - from "hunt for the key" to "fly home" - happened in total
+  silence: no sound, no visual, and a home portal that looked exactly the same whether it was
+  shut or open. The only way to discover home had opened was to fly into it and find out. The
+  signal existing made this easy to miss in review, because the emit site looked finished.
+- **A state change only reads if there's a distinct prior state to read against.** Lighting up
+  the portal wasn't enough on its own; it needed a visibly *dormant* look first (dim,
+  desaturated, slow pulse) so the flare has something to contrast with. Worth grepping for
+  `signal` declarations with no matching `.connect(` when hunting for gaps like this.
+- The same reasoning applies to the idle hint arrow, which pointed at the nearest collectible
+  and simply hid itself once they were all collected - i.e. it went quiet during precisely the
+  stretch where the player was most likely to be lost. It now falls back to pointing at the
+  portal.
+
+## Godot's built-in font has no glyphs beyond basic Latin
+
+- **A `"▶"` (U+25B6) in button text rendered as a tofu box in the web export** - and Godot's
+  tofu is not a blank rectangle, it draws the literal codepoint ("25B6") in a tiny 2x2 grid
+  inside a box, which looks unmistakably broken. This was on the level-intro START button and
+  the tutorial's NEXT button: screens every player taps through on the way into every level.
+  The project uses no custom font, so it gets Godot's built-in Open Sans subset, which covers
+  basic Latin and little else. Arrows, emoji, box-drawing, and most symbols are all absent.
+- **The fix that fits an all-procedural art pipeline is to generate the glyph as a texture and
+  use `Button.icon`** (plus `icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT` to sit it after the
+  word) rather than hunting for a symbol the default font happens to include. Guaranteed to
+  render, and it stays consistent with how every other icon in the game is made. Note that
+  `icon_alignment = RIGHT` pins the icon to the *button's* right edge, so the button has to be
+  sized close to its content or the icon strands itself in empty space.
+- Worth grepping sibling projects for non-ASCII characters in `text =` assignments - they share
+  the same no-custom-font setup, so the same bug can hide in any of them.
+
+## Check what a UI element animates *from*, not just what it animates to
+
+- **The key meter tweened to its correct value on level load, but its scene-authored starting
+  width was full** - so every level opened with the progress bar visibly draining from full to
+  empty before gameplay began. It read as losing progress at the exact moment the player should
+  feel they're starting fresh. Nothing was wrong with the tween or the value it computed; the
+  bug was entirely in the unexamined initial state it animated away from. A "set instantly on
+  first bind, tween only on subsequent changes" split is the general fix, and it's worth
+  applying to any HUD element whose scene default isn't its real zero state.
+
 ## Mechanic/UX decisions carried forward from Xavier's game, reconfirmed here
 
 - **One clear verb per button, even with two buttons, beats one button doing two different

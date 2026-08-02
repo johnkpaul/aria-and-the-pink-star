@@ -64,6 +64,7 @@ static func run_all() -> void:
 	_save(_make_icon_dissolve(), "icon_dissolve")
 	_save(_make_icon_arrow_hint(), "icon_arrow_hint")
 	_save(_make_icon_lock(), "icon_lock")
+	_save(_make_icon_play(), "icon_play")
 
 	_save(_make_black_hole_core(), "black_hole_core")
 	_save(_make_black_hole_swirl(), "black_hole_swirl")
@@ -71,6 +72,7 @@ static func run_all() -> void:
 	_save(_make_asteroid(), "asteroid")
 
 	_save(_make_reveal_pulse(), "reveal_pulse")
+	_save(_make_sparkle(), "sparkle")
 
 	print("ProceduralArt: all textures generated in ", OUT_DIR)
 
@@ -461,6 +463,56 @@ static func _make_reveal_pulse() -> Image:
 	var c := 32.0
 	_stroke_circle(img, c, c, 30, 5, LIGHT_PINK)
 	_stroke_circle(img, c, c, 30, 10, PINK)
+	return img
+
+
+## The little "go" triangle on the NEXT/START buttons. This exists as a
+## texture rather than a "▶" in the button's text because Godot's built-in
+## font has no glyph for U+25B6 - the web build rendered it as a tofu box
+## with the literal codepoint "25B6" printed inside, on a button every
+## player taps on the way into every level.
+static func _make_icon_play() -> Image:
+	var img := _new_image(12, 12)
+	var tri := PackedVector2Array([Vector2(3, 2), Vector2(3, 10), Vector2(10, 6)])
+	for y in range(12 * SCALE):
+		for x in range(12 * SCALE):
+			var p := Vector2((x + 0.5) / SCALE, (y + 0.5) / SCALE)
+			if _point_in_polygon(p, tri):
+				img.set_pixel(x, y, LIGHT_PINK)
+	return img
+
+
+## A single four-pointed sparkle mote, scattered in a burst when a key or
+## the gem is collected (see collectible.gd). Drawn glow-first so the
+## brighter core and arms overwrite it - `set_pixel` overwrites rather than
+## compositing, so paint order is the only blending available here.
+static func _make_sparkle() -> Image:
+	const SIZE := 16
+	const CENTER := SIZE / 2.0
+	var img := _new_image(SIZE, SIZE)
+
+	# Built from a continuous falloff rather than the rect/circle helpers:
+	# a sparkle needs arms that taper to nothing, and stacked solid shapes
+	# just read as a fat crosshair at this size. Pixels are walked in
+	# physical space but converted back to logical units first (the same
+	# `(x + 0.5) / SCALE` convention _make_asteroid uses) so the falloff
+	# constants stay independent of SCALE.
+	for y in range(SIZE * SCALE):
+		for x in range(SIZE * SCALE):
+			var dx: float = (x + 0.5) / SCALE - CENTER
+			var dy: float = (y + 0.5) / SCALE - CENTER
+			var r := sqrt(dx * dx + dy * dy)
+
+			var core: float = exp(-r * 0.95)
+			var arm_h: float = exp(-absf(dx) * 0.34) * exp(-absf(dy) * 2.3)
+			var arm_v: float = exp(-absf(dy) * 0.34) * exp(-absf(dx) * 2.3)
+			var v: float = clampf(maxf(core, maxf(arm_h, arm_v)), 0.0, 1.0)
+			if v <= 0.02:
+				continue
+
+			var col: Color = STAR_WHITE.lerp(PINK, clampf(r / 5.0, 0.0, 1.0))
+			col.a = v
+			img.set_pixel(x, y, col)
 	return img
 
 

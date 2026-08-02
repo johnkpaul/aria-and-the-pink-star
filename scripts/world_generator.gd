@@ -43,6 +43,14 @@ var collected_collectibles := 0
 var _black_holes: Array[Node2D] = []
 var _sticky_traps: Array[Node2D] = []
 
+## The home portal's sprite and its currently-running pulse tween, kept so
+## the dormant pulse can be swapped for the brighter "open" one the moment
+## the last key is found. `portal` itself is exposed because the HUD's idle
+## hint points at it once there are no collectibles left to point at.
+var portal: Area2D
+var _portal_sprite: Sprite2D
+var _portal_tween: Tween
+
 
 func _ready() -> void:
 	add_to_group("world")
@@ -81,6 +89,11 @@ func _clear_previous() -> void:
 	total_collectibles = 0
 	collected_collectibles = 0
 	player = null
+	if _portal_tween:
+		_portal_tween.kill()
+	_portal_tween = null
+	portal = null
+	_portal_sprite = null
 
 
 func _parse_rows() -> void:
@@ -146,8 +159,73 @@ func _on_collectible_collected(_gem: bool) -> void:
 	collected_collectibles += 1
 	key_collected.emit(collected_collectibles, total_collectibles)
 	ProceduralAudio.play_sfx("key")
+	if camera:
+		camera.shake(4.0)
 	if collected_collectibles >= total_collectibles:
 		all_keys_collected.emit()
+		_open_portal()
+
+
+## Dim, desaturated, slowly breathing - the portal is visibly *shut* while
+## keys are still missing. Without a dormant state to change away from, the
+## "it's open now" moment below has nothing to read against.
+const PORTAL_DORMANT_LOW := Color(0.40, 0.40, 0.52)
+const PORTAL_DORMANT_HIGH := Color(0.55, 0.55, 0.68)
+const PORTAL_OPEN_LOW := Color(1.0, 0.78, 0.92)
+const PORTAL_OPEN_HIGH := Color(1.6, 1.35, 1.5)
+
+
+func _start_portal_dormant_pulse() -> void:
+	if not _portal_sprite:
+		return
+	_portal_sprite.modulate = PORTAL_DORMANT_LOW
+	_portal_tween = _portal_sprite.create_tween()
+	_portal_tween.set_loops()
+	_portal_tween.tween_property(_portal_sprite, "modulate", PORTAL_DORMANT_HIGH, 1.1).set_trans(Tween.TRANS_SINE)
+	_portal_tween.tween_property(_portal_sprite, "modulate", PORTAL_DORMANT_LOW, 1.1).set_trans(Tween.TRANS_SINE)
+
+
+## Fired the instant the last key is collected. Before this existed the
+## level's goal silently changed with zero feedback - the portal looked
+## identical whether it was shut or open, so the only way to learn home had
+## opened was to fly into it and see what happened. Now it flares, pops,
+## and sounds off, so a 7-year-old gets an unmissable "go there now" cue.
+func _open_portal() -> void:
+	if not _portal_sprite:
+		return
+	ProceduralAudio.play_sfx("portal_open")
+	if camera:
+		camera.shake(7.0, 0.16)
+
+	if _portal_tween:
+		_portal_tween.kill()
+
+	var base_scale := _portal_sprite.scale
+	var flare := _portal_sprite.create_tween()
+	flare.set_parallel(true)
+	flare.tween_property(_portal_sprite, "modulate", PORTAL_OPEN_HIGH, 0.25).set_trans(Tween.TRANS_SINE)
+	flare.tween_property(_portal_sprite, "scale", base_scale * 1.18, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await flare.finished
+
+	# This function awaits across ~0.45s of animation, during which the
+	# player can tap MENU and have the whole world queue_freed out from
+	# under it - so the sprite has to be re-checked after every await, not
+	# just at entry.
+	if not is_instance_valid(_portal_sprite):
+		return
+	var settle := _portal_sprite.create_tween()
+	settle.tween_property(_portal_sprite, "scale", base_scale, 0.2).set_trans(Tween.TRANS_SINE)
+	await settle.finished
+
+	if not is_instance_valid(_portal_sprite):
+		return
+
+	# Steady-state "open": brighter and faster than dormant, so it keeps
+	# reading as active for the whole flight home, not just at the flare.
+	_portal_tween = _portal_sprite.create_tween()
+	_portal_tween.set_loops()
+	_portal_tween.tween_property(_portal_sprite, "modulate", PORTAL_OPEN_HIGH, 0.5).set_trans(Tween.TRANS_SINE)
+	_portal_tween.tween_property(_portal_sprite, "modulate", PORTAL_OPEN_LOW, 0.5).set_trans(Tween.TRANS_SINE)
 
 
 func _spawn_black_hole(cell: Vector2i) -> void:
@@ -197,10 +275,9 @@ func _spawn_home_portal(cells: Array[Vector2i]) -> void:
 	gate.add_child(sprite)
 	add_child(gate)
 
-	var pulse := gate.create_tween()
-	pulse.set_loops()
-	pulse.tween_property(sprite, "modulate", Color(1.15, 1.15, 1.15), 0.7).set_trans(Tween.TRANS_SINE)
-	pulse.tween_property(sprite, "modulate", Color(0.9, 0.9, 0.9), 0.7).set_trans(Tween.TRANS_SINE)
+	portal = gate
+	_portal_sprite = sprite
+	_start_portal_dormant_pulse()
 	gate.body_entered.connect(func(body: Node2D) -> void:
 		if body.is_in_group("player") and collected_collectibles >= total_collectibles:
 			level_complete.emit()

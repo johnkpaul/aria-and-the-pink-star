@@ -79,6 +79,7 @@ func _build_all_sfx() -> void:
 	_sfx_streams["stuck"] = _make_stuck_sfx()
 	_sfx_streams["bump"] = _make_bump_sfx()
 	_sfx_streams["ui_tap"] = _make_ui_tap_sfx()
+	_sfx_streams["portal_open"] = _make_portal_open_sfx()
 	_sfx_streams["unlock"] = _make_silent_sfx()
 
 
@@ -235,6 +236,41 @@ func _make_ui_tap_sfx() -> AudioStreamWAV:
 		var env: float = 1.0 - t
 		var sample := sin(TAU * freq * (float(i) / SAMPLE_RATE)) * env
 		_write_sample(data, i, sample * 0.4)
+	return _wrap_pcm(data)
+
+
+## The "home is open now" fanfare - deliberately the longest and most
+## triumphant sound in the game, since it marks the one moment the level's
+## goal changes (hunt keys -> fly home). A rising major arpeggio that ends
+## on a sustained octave, with a shimmering fifth layered over the last
+## note so it reads as an arrival rather than just another pickup chime.
+func _make_portal_open_sfx() -> AudioStreamWAV:
+	var notes := [523.25, 659.25, 783.99, 1046.5]  # C5 E5 G5 C6
+	var note_dur := 0.11
+	var frames_per_note := int(SAMPLE_RATE * note_dur)
+	var tail_frames := int(SAMPLE_RATE * 0.5)
+	var total_frames := frames_per_note * notes.size() + tail_frames
+	var data := PackedByteArray()
+	data.resize(total_frames * 2)
+
+	for n in range(notes.size()):
+		var freq: float = notes[n]
+		for i in range(frames_per_note):
+			var t := float(i) / frames_per_note
+			var env: float = sin(t * PI)
+			var sample := sin(TAU * freq * (float(i) / SAMPLE_RATE)) * env
+			_write_sample(data, n * frames_per_note + i, sample * 0.55)
+
+	# Sustained C6 + a quieter G6 shimmer, fading out over the tail.
+	var tail_start := frames_per_note * notes.size()
+	for i in range(tail_frames):
+		var t := float(i) / tail_frames
+		var env: float = pow(1.0 - t, 1.6)
+		var st := float(i) / SAMPLE_RATE
+		var sample := sin(TAU * 1046.5 * st) * 0.5
+		sample += sin(TAU * 1567.98 * st) * 0.22 * (1.0 - t)
+		_write_sample(data, tail_start + i, sample * env)
+
 	return _wrap_pcm(data)
 
 

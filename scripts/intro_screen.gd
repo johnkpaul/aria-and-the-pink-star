@@ -83,14 +83,20 @@ func _ready() -> void:
 	add_child(_caption)
 
 	_next_button = Button.new()
-	_next_button.offset_left = 760
+	# Narrow and centered on x=960 - see the matching note in level_intro.gd
+	# about `icon_alignment = RIGHT` stranding the arrow on a wide button.
+	_next_button.offset_left = 830
 	_next_button.offset_top = 960
-	_next_button.offset_right = 1160
+	_next_button.offset_right = 1090
 	_next_button.offset_bottom = 1056
 	_next_button.add_theme_font_size_override("font_size", 44)
 	_next_button.add_theme_color_override("font_color", HINT_COLOR)
 	_next_button.flat = true
-	_next_button.text = "NEXT ▶"
+	# Arrow is an icon, not a "▶" in the text - the built-in font has no
+	# glyph for it and rendered a tofu box here (see _make_icon_play).
+	_next_button.text = "NEXT"
+	_next_button.icon = load("res://generated_assets/icon_play.png")
+	_next_button.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_next_button.pressed.connect(_try_advance)
 	_next_button.pressed.connect(func(): ProceduralAudio.play_sfx("ui_tap"))
 	add_child(_next_button)
@@ -117,7 +123,7 @@ func _next_card() -> void:
 		_icon_rects[i].modulate.a = 0.0
 	_caption.text = card["text"]
 	_caption.modulate.a = 0.0
-	_next_button.text = "START ▶" if _index == _cards.size() - 1 else "NEXT ▶"
+	_next_button.text = "START" if _index == _cards.size() - 1 else "NEXT"
 
 	var tw := create_tween()
 	tw.set_parallel(true)

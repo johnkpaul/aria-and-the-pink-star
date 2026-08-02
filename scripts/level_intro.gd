@@ -57,14 +57,21 @@ func _ready() -> void:
 	add_child(_story_label)
 
 	_start_button = Button.new()
-	_start_button.offset_left = 760
+	# Kept centered on x=960, but narrow - `icon_alignment = RIGHT` pins the
+	# arrow to the button's right edge, so a wide button strands it in empty
+	# space far from the word.
+	_start_button.offset_left = 830
 	_start_button.offset_top = 900
-	_start_button.offset_right = 1160
+	_start_button.offset_right = 1090
 	_start_button.offset_bottom = 990
 	_start_button.add_theme_font_size_override("font_size", 44)
 	_start_button.add_theme_color_override("font_color", START_COLOR)
 	_start_button.flat = true
-	_start_button.text = "START ▶"
+	# Arrow is an icon, not a "▶" in the text - the built-in font has no
+	# glyph for it and rendered a tofu box here (see _make_icon_play).
+	_start_button.text = "START"
+	_start_button.icon = load("res://generated_assets/icon_play.png")
+	_start_button.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_start_button.pressed.connect(_advance)
 	_start_button.pressed.connect(func(): ProceduralAudio.play_sfx("ui_tap"))
 	add_child(_start_button)

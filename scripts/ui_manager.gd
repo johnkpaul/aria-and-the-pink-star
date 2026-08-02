@@ -39,15 +39,23 @@ func _ready() -> void:
 func bind_world(w: WorldGenerator) -> void:
 	world = w
 	world.key_collected.connect(_on_key_progress)
-	_on_key_progress(world.collected_collectibles, maxi(world.total_collectibles, 1))
+	_on_key_progress(world.collected_collectibles, maxi(world.total_collectibles, 1), true)
 	_reset_idle()
 
 
-func _on_key_progress(collected: int, total: int) -> void:
+## `instant` is used for the initial bind at level load. The meter's clip
+## starts at full width in ui.tscn, so tweening to the real (empty) value
+## made every level open with the key bar visibly draining from full to
+## nothing - it read as losing progress rather than starting fresh.
+func _on_key_progress(collected: int, total: int, instant: bool = false) -> void:
 	var ratio: float = float(collected) / float(maxi(total, 1))
 	var full_width: float = meter_fill.size.x
+	var target: float = full_width * ratio
+	if instant:
+		meter_fill_clip.size.x = target
+		return
 	var tw := create_tween()
-	tw.tween_property(meter_fill_clip, "size:x", full_width * ratio, 0.25)
+	tw.tween_property(meter_fill_clip, "size:x", target, 0.25)
 
 
 func _process(delta: float) -> void:
@@ -83,23 +91,38 @@ func _hide_hint() -> void:
 	idle_hint.modulate.a = 0.0
 
 
+## Points at the nearest remaining key, or - once they're all collected and
+## the collectible group is empty - at the home portal. Previously the hint
+## just hid itself in that second case, which meant an idle player got no
+## guidance during precisely the stretch where the goal had silently
+## changed from "hunt" to "fly home".
 func _update_hint_position() -> void:
-	var items := get_tree().get_nodes_in_group("collectible")
-	if items.is_empty() or not world.camera:
+	if not world.camera:
 		idle_hint.visible = false
 		return
-	idle_hint.visible = true
 
 	var player_pos: Vector2 = world.player.global_position
-	var nearest: Node2D = items[0]
-	var nearest_dist := player_pos.distance_squared_to(nearest.global_position)
-	for c in items:
-		var d := player_pos.distance_squared_to(c.global_position)
-		if d < nearest_dist:
-			nearest_dist = d
-			nearest = c
+	var target_pos: Vector2
+	var items := get_tree().get_nodes_in_group("collectible")
 
-	var dir: Vector2 = (nearest.global_position - player_pos)
+	if items.is_empty():
+		if not is_instance_valid(world.portal):
+			idle_hint.visible = false
+			return
+		target_pos = world.portal.global_position
+	else:
+		var nearest: Node2D = items[0]
+		var nearest_dist := player_pos.distance_squared_to(nearest.global_position)
+		for c in items:
+			var d := player_pos.distance_squared_to(c.global_position)
+			if d < nearest_dist:
+				nearest_dist = d
+				nearest = c
+		target_pos = nearest.global_position
+
+	idle_hint.visible = true
+
+	var dir: Vector2 = (target_pos - player_pos)
 	if dir.length() < 1.0:
 		dir = Vector2.RIGHT
 	dir = dir.normalized()

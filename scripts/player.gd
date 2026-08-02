@@ -16,6 +16,13 @@ const REVEAL_RADIUS := 220.0
 const BOUNCE_STRENGTH := 320.0
 const BOUNDS_MARGIN := 40.0
 
+## How far Aria tilts nose-up/nose-down at full vertical stick, and how
+## quickly she eases toward that angle. Small on purpose - just enough that
+## climbing and diving read as flying rather than sliding, without the
+## sprite ever looking like it's tipping over.
+const MAX_BANK := 0.22
+const BANK_SPEED := 7.0
+
 const TEX_ARIA := preload("res://imported_assets/aria_sprite.png")
 const TEX_REVEAL_PULSE := preload("res://generated_assets/reveal_pulse.png")
 
@@ -201,6 +208,20 @@ func _update_visuals(delta: float, moving: bool) -> void:
 
 	_bob_timer += delta * (5.0 if moving else 2.0)
 	sprite.position.y = sin(_bob_timer) * 4.0
+
+	# `facing` flips the sprite via a negative scale.x, and Godot applies
+	# rotation *after* scale - so the same angle would tilt her the wrong
+	# way once mirrored. Multiplying by `facing` keeps the nose leaning into
+	# the direction of travel on both headings. Banking is also zeroed out
+	# whenever she isn't flying under her own power (stuck in a trap, or
+	# being pulled back by a black hole).
+	var target_bank := 0.0
+	if state == State.NORMAL:
+		target_bank = move_input.y * MAX_BANK * facing
+	var bank: float = lerpf(sprite.rotation, target_bank, clampf(BANK_SPEED * delta, 0.0, 1.0))
+	sprite.rotation = bank
+	if sidekick:
+		sidekick.rotation = bank
 
 
 func _get_pulled_back() -> void:
