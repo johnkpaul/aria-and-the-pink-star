@@ -22,6 +22,8 @@ const DEADZONE := 0.15
 var _joy_touch_index := -2  # -2 = untouched, -1 = mouse
 var _joy_center := Vector2.ZERO
 var _joy_vector := Vector2.ZERO
+var _dissolve_highlight_tween: Tween
+var _reveal_highlight_tween: Tween
 
 
 func _ready() -> void:
@@ -108,6 +110,43 @@ func _spawn_joy_particles(pos: Vector2) -> void:
 		tw.tween_property(p, "global_position", pos + dir * 80.0, 0.3)
 		tw.tween_property(p, "modulate:a", 0.0, 0.3)
 		tw.chain().tween_callback(p.queue_free)
+
+
+## Called by player.gd whenever Aria gets stuck/unstuck in a sticky trap,
+## so the Dissolve Light button visibly glows while it's the button that
+## actually does something - a kid stuck in a trap shouldn't have to guess
+## which of the two buttons is the way out.
+func set_dissolve_highlighted(active: bool) -> void:
+	if active:
+		if _dissolve_highlight_tween:
+			return
+		_dissolve_highlight_tween = create_tween()
+		_dissolve_highlight_tween.set_loops()
+		_dissolve_highlight_tween.tween_property(dissolve_button, "modulate", Color(1.7, 1.7, 1.7), 0.35).set_trans(Tween.TRANS_SINE)
+		_dissolve_highlight_tween.tween_property(dissolve_button, "modulate", Color(1.0, 1.0, 1.0), 0.35).set_trans(Tween.TRANS_SINE)
+	else:
+		if _dissolve_highlight_tween:
+			_dissolve_highlight_tween.kill()
+			_dissolve_highlight_tween = null
+		dissolve_button.modulate = Color(1.0, 1.0, 1.0)
+
+
+## Called by player.gd every frame Aria's within reveal range of a hidden
+## key/gem (and stops the moment she isn't), turning "randomly mash the
+## button" into a discoverable "walk around and watch for the glow" loop.
+func set_reveal_highlighted(active: bool) -> void:
+	if active:
+		if _reveal_highlight_tween:
+			return
+		_reveal_highlight_tween = create_tween()
+		_reveal_highlight_tween.set_loops()
+		_reveal_highlight_tween.tween_property(reveal_button, "modulate", Color(1.7, 1.7, 1.7), 0.35).set_trans(Tween.TRANS_SINE)
+		_reveal_highlight_tween.tween_property(reveal_button, "modulate", Color(1.0, 1.0, 1.0), 0.35).set_trans(Tween.TRANS_SINE)
+	else:
+		if _reveal_highlight_tween:
+			_reveal_highlight_tween.kill()
+			_reveal_highlight_tween = null
+		reveal_button.modulate = Color(1.0, 1.0, 1.0)
 
 
 func _prevent_browser_scroll() -> void:

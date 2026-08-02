@@ -1,7 +1,76 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Texture2D" path="res://generated_assets/icon_lock.png" id="2"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_LevelNormal"]
+bg_color = Color(0.72, 0.13, 0.48, 1)
+border_width_left = 6
+border_width_top = 6
+border_width_right = 6
+border_width_bottom = 6
+border_color = Color(1, 0.7, 0.9, 1)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_LevelHover"]
+bg_color = Color(0.85, 0.2, 0.58, 1)
+border_width_left = 6
+border_width_top = 6
+border_width_right = 6
+border_width_bottom = 6
+border_color = Color(1, 0.8, 0.95, 1)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_LevelPressed"]
+bg_color = Color(0.55, 0.08, 0.36, 1)
+border_width_left = 6
+border_width_top = 6
+border_width_right = 6
+border_width_bottom = 6
+border_color = Color(1, 0.7, 0.9, 1)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_LevelDisabled"]
+bg_color = Color(0.22, 0.19, 0.28, 1)
+border_width_left = 6
+border_width_top = 6
+border_width_right = 6
+border_width_bottom = 6
+border_color = Color(0.4, 0.38, 0.46, 0.6)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_PillNormal"]
+bg_color = Color(0.5, 0.12, 0.38, 0.55)
+corner_radius_top_left = 28
+corner_radius_top_right = 28
+corner_radius_bottom_right = 28
+corner_radius_bottom_left = 28
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_PillHover"]
+bg_color = Color(0.62, 0.16, 0.46, 0.65)
+corner_radius_top_left = 28
+corner_radius_top_right = 28
+corner_radius_bottom_right = 28
+corner_radius_bottom_left = 28
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_PillPressed"]
+bg_color = Color(0.4, 0.08, 0.3, 0.65)
+corner_radius_top_left = 28
+corner_radius_top_right = 28
+corner_radius_bottom_right = 28
+corner_radius_bottom_left = 28
 
 [node name="Main" type="Node"]
 script = ExtResource("1")
@@ -60,6 +129,10 @@ theme_override_constants/separation = 48
 custom_minimum_size = Vector2(280, 280)
 layout_mode = 2
 theme_override_font_sizes/font_size = 100
+theme_override_styles/normal = SubResource("StyleBoxFlat_LevelNormal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_LevelHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_LevelPressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_LevelDisabled")
 text = "1"
 
 [node name="Level2Button" type="Button" parent="TitleScreen/LevelButtons"]
@@ -67,6 +140,10 @@ custom_minimum_size = Vector2(280, 280)
 layout_mode = 2
 theme_override_font_sizes/font_size = 100
 theme_override_colors/font_color = Color(0.55, 0.55, 0.58, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_LevelNormal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_LevelHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_LevelPressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_LevelDisabled")
 text = "2"
 
 [node name="LockIcon" type="TextureRect" parent="TitleScreen/LevelButtons/Level2Button"]
@@ -86,6 +163,10 @@ custom_minimum_size = Vector2(280, 280)
 layout_mode = 2
 theme_override_font_sizes/font_size = 100
 theme_override_colors/font_color = Color(0.55, 0.55, 0.58, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_LevelNormal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_LevelHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_LevelPressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_LevelDisabled")
 text = "3"
 
 [node name="LockIcon" type="TextureRect" parent="TitleScreen/LevelButtons/Level3Button"]
@@ -105,6 +186,10 @@ custom_minimum_size = Vector2(280, 280)
 layout_mode = 2
 theme_override_font_sizes/font_size = 100
 theme_override_colors/font_color = Color(0.55, 0.55, 0.58, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_LevelNormal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_LevelHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_LevelPressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_LevelDisabled")
 text = "4"
 
 [node name="LockIcon" type="TextureRect" parent="TitleScreen/LevelButtons/Level4Button"]
@@ -121,34 +206,40 @@ texture = ExtResource("2")
 
 [node name="ResetButton" type="Button" parent="TitleScreen"]
 offset_left = 32.0
-offset_top = 1016.0
+offset_top = 1000.0
 offset_right = 312.0
-offset_bottom = 1076.0
-theme_override_font_sizes/font_size = 36
-theme_override_colors/font_color = Color(1, 1, 1, 0.5)
-flat = true
+offset_bottom = 1064.0
+theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(1, 1, 1, 0.85)
+theme_override_styles/normal = SubResource("StyleBoxFlat_PillNormal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_PillHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_PillPressed")
 text = "NEW GAME"
 
 [node name="ResetConfirmYes" type="Button" parent="TitleScreen"]
 visible = false
 offset_left = 32.0
-offset_top = 1016.0
+offset_top = 1000.0
 offset_right = 220.0
-offset_bottom = 1076.0
-theme_override_font_sizes/font_size = 36
+offset_bottom = 1064.0
+theme_override_font_sizes/font_size = 32
 theme_override_colors/font_color = Color(1, 0.7, 0.9, 1)
-flat = true
+theme_override_styles/normal = SubResource("StyleBoxFlat_PillNormal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_PillHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_PillPressed")
 text = "RESET"
 
 [node name="ResetConfirmNo" type="Button" parent="TitleScreen"]
 visible = false
 offset_left = 236.0
-offset_top = 1016.0
+offset_top = 1000.0
 offset_right = 424.0
-offset_bottom = 1076.0
-theme_override_font_sizes/font_size = 36
-theme_override_colors/font_color = Color(1, 1, 1, 0.5)
-flat = true
+offset_bottom = 1064.0
+theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(1, 1, 1, 0.85)
+theme_override_styles/normal = SubResource("StyleBoxFlat_PillNormal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_PillHover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_PillPressed")
 text = "CANCEL"
 
 [node name="LevelClearOverlay" type="CanvasLayer" parent="."]
@@ -182,3 +273,11 @@ theme_override_colors/font_color = Color(1, 1, 1, 0.45)
 horizontal_alignment = 2
 vertical_alignment = 2
 text = "v-dev"
+
+[node name="ScreenFader" type="CanvasLayer" parent="."]
+layer = 40
+
+[node name="Fade" type="ColorRect" parent="ScreenFader"]
+mouse_filter = 2
+color = Color(0.070588, 0.043137, 0.180392, 0)
+size = Vector2(1920, 1080)

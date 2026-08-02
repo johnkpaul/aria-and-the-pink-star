@@ -27,6 +27,7 @@ func _ready() -> void:
 	idle_hint.modulate.a = 0.0
 
 	menu_button.pressed.connect(func(): menu_requested.emit())
+	menu_button.pressed.connect(func(): ProceduralAudio.play_sfx("ui_tap"))
 
 	var tc: TouchControls = get_tree().get_first_node_in_group("touch_controls")
 	if tc:

@@ -72,11 +72,13 @@ func _get_free_sfx_player() -> AudioStreamPlayer:
 
 func _build_all_sfx() -> void:
 	_sfx_streams["reveal"] = _make_reveal_sfx()
+	_sfx_streams["reveal_empty"] = _make_reveal_empty_sfx()
 	_sfx_streams["dissolve"] = _make_dissolve_sfx()
 	_sfx_streams["key"] = _make_key_sfx()
 	_sfx_streams["pulled"] = _make_pulled_sfx()
 	_sfx_streams["stuck"] = _make_stuck_sfx()
 	_sfx_streams["bump"] = _make_bump_sfx()
+	_sfx_streams["ui_tap"] = _make_ui_tap_sfx()
 	_sfx_streams["unlock"] = _make_silent_sfx()
 
 
@@ -102,6 +104,24 @@ func _make_reveal_sfx() -> AudioStreamWAV:
 			var env: float = sin(t * PI)
 			var sample := sin(TAU * freq * (float(i) / SAMPLE_RATE)) * env
 			_write_sample(data, n * frames_per_note + i, sample * 0.7)
+	return _wrap_pcm(data)
+
+
+## A single soft, neutral blip - "the light searched, nothing here" -
+## deliberately calmer than the reveal chime (no rising pitch, no
+## multi-note pattern) so a tap that finds nothing still feels like it did
+## something, without reading as a wrong-answer buzz.
+func _make_reveal_empty_sfx() -> AudioStreamWAV:
+	var duration := 0.12
+	var frames := int(SAMPLE_RATE * duration)
+	var data := PackedByteArray()
+	data.resize(frames * 2)
+	var freq := 520.0
+	for i in range(frames):
+		var t := float(i) / frames
+		var env: float = sin(t * PI) * (1.0 - t * 0.3)
+		var sample := sin(TAU * freq * (float(i) / SAMPLE_RATE)) * env
+		_write_sample(data, i, sample * 0.45)
 	return _wrap_pcm(data)
 
 
@@ -197,6 +217,24 @@ func _make_bump_sfx() -> AudioStreamWAV:
 		var sample: float = 1.0 if phase < 0.5 else -1.0
 		var env: float = 1.0 - t
 		_write_sample(data, i, sample * env * 0.6)
+	return _wrap_pcm(data)
+
+
+## A quick, light tick - generic menu-button feedback (title screen, tutorial
+## NEXT, level-intro START, in-level MENU). Deliberately plainer than the
+## gameplay action sounds (reveal/dissolve/key/etc.) so menus feel responsive
+## without competing with those more distinctive cues.
+func _make_ui_tap_sfx() -> AudioStreamWAV:
+	var duration := 0.05
+	var frames := int(SAMPLE_RATE * duration)
+	var data := PackedByteArray()
+	data.resize(frames * 2)
+	var freq := 900.0
+	for i in range(frames):
+		var t := float(i) / frames
+		var env: float = 1.0 - t
+		var sample := sin(TAU * freq * (float(i) / SAMPLE_RATE)) * env
+		_write_sample(data, i, sample * 0.4)
 	return _wrap_pcm(data)
 
 

@@ -70,6 +70,8 @@ static func run_all() -> void:
 	_save(_make_sticky_trap(), "sticky_trap")
 	_save(_make_asteroid(), "asteroid")
 
+	_save(_make_reveal_pulse(), "reveal_pulse")
+
 	print("ProceduralArt: all textures generated in ", OUT_DIR)
 
 
@@ -447,6 +449,18 @@ static func _make_icon_lock() -> Image:
 	_fill_rect(img, 4, 11, 16, 11, SLATE_GREY)
 	_fill_rect(img, 5, 12, 14, 9, VOID_BLACK)
 	_fill_circle(img, 12, 16, 2, SLATE_GREY)
+	return img
+
+
+## A soft ring, bright at its edge and transparent at the center, so a kid
+## can see exactly how far Reveal Light actually searches every time they
+## tap it - stretched to REVEAL_RADIUS and faded out by player.gd, whether
+## or not anything was actually found.
+static func _make_reveal_pulse() -> Image:
+	var img := _new_image(64, 64)
+	var c := 32.0
+	_stroke_circle(img, c, c, 30, 5, LIGHT_PINK)
+	_stroke_circle(img, c, c, 30, 10, PINK)
 	return img
 
 

@@ -30,6 +30,7 @@ const ZONE_TINTS := [
 
 var player: CharacterBody2D
 @onready var camera: CameraFollow = $Camera2D
+@onready var background: Sprite2D = $BackgroundSpace
 
 var level_index := 0
 var level: Dictionary
@@ -58,13 +59,12 @@ func build_level(index: int) -> void:
 	_clear_previous()
 	_parse_rows()
 
-	if camera:
-		var background: Sprite2D = camera.get_node_or_null("BackgroundSpace")
-		if background:
-			background.modulate = ZONE_TINTS[level_index % ZONE_TINTS.size()]
+	if background:
+		background.modulate = ZONE_TINTS[level_index % ZONE_TINTS.size()]
 
 	camera.set_level_bounds(level_width * TILE_SIZE, level_height * TILE_SIZE)
 	camera.set_target(player)
+	camera.set_parallax_target(background)
 	if camera.is_inside_tree():
 		camera.make_current()
 	else:
@@ -73,7 +73,7 @@ func build_level(index: int) -> void:
 
 func _clear_previous() -> void:
 	for child in get_children():
-		if child == camera:
+		if child == camera or child == background:
 			continue
 		child.queue_free()
 	_black_holes.clear()

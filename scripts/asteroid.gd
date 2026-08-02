@@ -17,15 +17,19 @@ func _ready() -> void:
 	collision_layer = 0
 	collision_mask = 2
 	body_entered.connect(_on_body_entered)
-	_home = position
-	_drift()
+	# world_generator.gd sets global_position right after add_child(), which
+	# runs *after* _ready() fires - capturing "home" here would grab the
+	# node's not-yet-placed (0,0) default instead of its real spawn point.
+	# Deferring to the next idle frame waits until that position is set.
+	call_deferred("_start_drift")
 	if sprite:
 		var spin := create_tween()
 		spin.set_loops()
 		spin.tween_property(sprite, "rotation", sprite.rotation + TAU, randf_range(4.0, 7.0)).set_trans(Tween.TRANS_LINEAR)
 
 
-func _drift() -> void:
+func _start_drift() -> void:
+	_home = position
 	var offset := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized() * DRIFT_RANGE
 	var tw := create_tween()
 	tw.set_loops()

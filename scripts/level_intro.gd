@@ -66,6 +66,7 @@ func _ready() -> void:
 	_start_button.flat = true
 	_start_button.text = "START ▶"
 	_start_button.pressed.connect(_advance)
+	_start_button.pressed.connect(func(): ProceduralAudio.play_sfx("ui_tap"))
 	add_child(_start_button)
 
 

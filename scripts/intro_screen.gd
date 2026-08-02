@@ -29,6 +29,18 @@ var _cards: Array[Dictionary] = [
 		"icons": ["res://generated_assets/icon_reveal.png", "res://generated_assets/icon_dissolve.png"],
 		"text": "TAP TO REVEAL OR DISSOLVE",
 	},
+	{
+		"icons": ["res://generated_assets/black_hole_core.png", "res://generated_assets/black_hole_swirl.png"],
+		"text": "BLACK HOLES PULL YOU BACK",
+	},
+	{
+		"icons": ["res://generated_assets/sticky_trap.png", "res://generated_assets/icon_dissolve.png"],
+		"text": "STUCK? USE DISSOLVE LIGHT",
+	},
+	{
+		"icons": ["res://generated_assets/asteroid.png"],
+		"text": "ASTEROIDS JUST BOUNCE YOU",
+	},
 ]
 
 var _icon_rects: Array[TextureRect] = []
@@ -80,6 +92,7 @@ func _ready() -> void:
 	_next_button.flat = true
 	_next_button.text = "NEXT ▶"
 	_next_button.pressed.connect(_try_advance)
+	_next_button.pressed.connect(func(): ProceduralAudio.play_sfx("ui_tap"))
 	add_child(_next_button)
 
 

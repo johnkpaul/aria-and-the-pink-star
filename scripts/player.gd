@@ -17,6 +17,7 @@ const BOUNCE_STRENGTH := 320.0
 const BOUNDS_MARGIN := 40.0
 
 const TEX_ARIA := preload("res://imported_assets/aria_sprite.png")
+const TEX_REVEAL_PULSE := preload("res://generated_assets/reveal_pulse.png")
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var sidekick: Sprite2D = $Sidekick
@@ -31,6 +32,7 @@ var last_safe_position := Vector2.ZERO
 
 var _current_trap: Node2D
 var _bob_timer := 0.0
+var _near_hidden := false
 
 
 func _ready() -> void:
@@ -61,10 +63,33 @@ func _on_joystick_moved(vec: Vector2) -> void:
 func _on_reveal_pressed() -> void:
 	if state == State.PULLED:
 		return
+	_spawn_reveal_pulse()
 	var target := _find_nearest_hidden()
 	if target:
 		target.reveal()
 		ProceduralAudio.play_sfx("reveal")
+	else:
+		ProceduralAudio.play_sfx("reveal_empty")
+
+
+## A ring that expands from Aria out to exactly REVEAL_RADIUS and fades -
+## fires on every tap of Reveal Light, whether or not it found anything, so
+## a kid can always see how far the light just searched instead of
+## wondering whether the button did anything at all.
+func _spawn_reveal_pulse() -> void:
+	var pulse := Sprite2D.new()
+	pulse.texture = TEX_REVEAL_PULSE
+	pulse.global_position = global_position
+	pulse.z_index = 5
+	pulse.modulate.a = 0.9
+	get_parent().add_child(pulse)
+	var target_scale: float = (REVEAL_RADIUS * 2.0) / pulse.texture.get_width()
+	pulse.scale = Vector2(0.15, 0.15)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(pulse, "scale", Vector2(target_scale, target_scale), 0.4).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(pulse, "modulate:a", 0.0, 0.4).set_trans(Tween.TRANS_SINE)
+	tw.chain().tween_callback(pulse.queue_free)
 
 
 func _on_dissolve_pressed() -> void:
@@ -74,6 +99,10 @@ func _on_dissolve_pressed() -> void:
 	_current_trap = null
 	state = State.NORMAL
 	ProceduralAudio.play_sfx("dissolve")
+	if touch_controls:
+		touch_controls.set_dissolve_highlighted(false)
+	var tw := create_tween()
+	tw.tween_property(sprite, "modulate", Color(1.0, 1.0, 1.0), 0.3)
 
 
 func _find_nearest_hidden() -> Node2D:
@@ -96,6 +125,10 @@ func get_stuck(trap: Node2D) -> void:
 	_current_trap = trap
 	velocity = Vector2.ZERO
 	ProceduralAudio.play_sfx("stuck")
+	if touch_controls:
+		touch_controls.set_dissolve_highlighted(true)
+	var tw := create_tween()
+	tw.tween_property(sprite, "modulate", Color(1.0, 0.75, 0.92), 0.2)
 
 
 func bounce(direction: Vector2) -> void:
@@ -138,7 +171,17 @@ func _physics_process(delta: float) -> void:
 	if not in_danger:
 		last_safe_position = global_position
 
+	_update_reveal_highlight()
 	_update_visuals(delta, absf(move_input.x) > 0.05 or absf(move_input.y) > 0.05)
+
+
+func _update_reveal_highlight() -> void:
+	var near: bool = _find_nearest_hidden() != null
+	if near == _near_hidden:
+		return
+	_near_hidden = near
+	if touch_controls:
+		touch_controls.set_reveal_highlighted(near)
 
 
 func _clamp_to_bounds() -> void:
