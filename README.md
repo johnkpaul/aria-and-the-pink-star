@@ -1,5 +1,7 @@
 # Aria and the Pink Star
 
+**▶ Play: <https://johnkpaul.github.io/aria-and-the-pink-star/>**
+
 A 10-minute, 4-level free-flight touch game for a 7-year-old: Aria, a colorful friendly
 unicorn, is stranded in outer space with her little brother. Find 3 hidden keys and the
 pink gem, dodge black holes and asteroids, dissolve sticky pink traps, and fly home. Built
@@ -87,9 +89,15 @@ instead.
 
 ## Browser deployment notes
 
-- **GitHub Pages**: push the contents of `build/web/` to a `gh-pages` branch (or the `/docs`
-  folder on `main`) and enable Pages in the repo settings. GitHub Pages serves static files
-  over HTTPS by default, which the WASM build needs.
+- **GitHub Pages** (what this repo uses): run `./deploy.sh`, which rebuilds the export and
+  force-pushes `build/web/` to the `gh-pages` branch as a single commit, so the ~38MB
+  `index.wasm` never accumulates history. Pages serves over HTTPS, which the WASM build needs
+  for its secure context.
+  - Pages cannot send custom headers, so this only works because the export doesn't need
+    cross-origin isolation (`COOP`/`COEP`). Godot's web build only requires those when
+    **thread support is enabled** in the export preset — leave it off and plain static hosting
+    is fine. If you ever turn threads on, Pages will stop working and you'll need a host that
+    can set headers (or a `coi-serviceworker` shim).
 - **Netlify / Vercel / any static host**: drag-and-drop or deploy the `build/web/` folder
   directly — no build step is required on the host side.
 - Make sure your host serves `.wasm` files with the `application/wasm` MIME type (most modern
