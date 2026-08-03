@@ -53,6 +53,33 @@ existing codebase into a third, differently-mechanic'd game.
   actually complete before quitting. Worth running once after any bulk-regeneration of
   `generated_assets/`/`imported_assets/` before trusting a subsequent headless smoke test.
 
+## Headless tests prove existence, not legibility
+
+- **A headless test can confirm a visual effect spawns, tweens and frees itself while the effect
+  is still invisible on screen.** The pickup sparkle burst passed exactly such a test - 10 motes
+  created, all freed, no leak - and could not be seen in a single screenshot of the running
+  game. Same for the flight trail later. Headless answers "does this run without erroring";
+  only a screenshot of the real build answers "can a player see it".
+- **When something doesn't appear, exaggerate the parameter before debugging the mechanism.**
+  Cranking the trail motes to ~4x size and 3s lifetime made them unmistakable in one run, which
+  separated "not rendering" (a real bug) from "rendering, badly tuned" (a number to change)
+  immediately. Guessing at causes in that order is much slower than making the thing enormous
+  and looking.
+- Corollary for capture timing: an effect tied to input will already be fading by the time an
+  automated screenshot lands after the input ends. A short-lived effect can look completely
+  absent in stills and still be fine in motion - so tune from a frame captured *during* the
+  action, or lengthen the effect until stills can see it and then dial back deliberately.
+
+## Tear down test harnesses at the end of a run, not the start of the next one
+
+- **A headless Chrome left running with a WebGL game loaded sat at 224% CPU** and noticeably
+  heated the machine. Godot web needs `--use-angle=swiftshader` in headless Chrome, which is
+  *software* rasterisation - it renders the game continuously on the CPU with no GPU involved,
+  so an idle-looking browser is anything but.
+- The failure mode was a cleanup pattern of `pkill` *before* launching the next instance, which
+  is invisible while iterating and always leaves the final instance alive indefinitely. Kill the
+  browser when a verification run finishes; the next run can afford the ~4s to start a fresh one.
+
 ## Swapping a level means freeing the old one, not just reassigning the variable
 
 - **`_load_level` built a new World and assigned it to `current_world` without freeing the
@@ -184,6 +211,26 @@ Three separate on-device problems all traced back to two lines in `project.godot
   bug was entirely in the unexamined initial state it animated away from. A "set instantly on
   first bind, tween only on subsequent changes" split is the general fix, and it's worth
   applying to any HUD element whose scene default isn't its real zero state.
+
+## Work out how big a sprite actually lands on the target screen before buying more art
+
+- **"Would it look better with animation frames?" is an arithmetic question first.** The hero
+  sprite here is 128px in a 1920x1080 design space. On the phone the game is actually played on,
+  1080 logical units map to roughly 393 CSS px in landscape, so she lands at about **47 CSS px**
+  - and around **26** in portrait. At that size a leg cycle or mane flutter is invisible, and
+  paying an image-generation service per frame buys detail the screen throws away.
+- **At small sizes, distinct state poses beat animation cycles.** A "stuck", "scared" or
+  "celebrating" pose changes silhouette and colour, so it reads at 26px *and* communicates game
+  state - which is functional, not decorative. A six-frame idle cycle does neither.
+- **Scaling the existing sprite up is nearly free and usually wins first.** Scale the *sprite*
+  and leave the collision shape alone, so the character reads bigger without quietly making
+  hazards harder to dodge.
+- **More AI-generated frames carry a consistency risk that can lower polish.** Each generation
+  is independent, so hue and proportion drift between frames reads as flicker - visibly worse
+  than one clean static sprite. Motion that costs nothing and cannot drift (squash-and-stretch
+  along travel, a particle wake, banking into turns) is the safer spend, and reads at any size.
+- The same arithmetic answers UI questions: a 36-unit font is ~13 CSS px on that phone. Convert
+  design units to real device pixels *before* choosing any size or level of detail.
 
 ## Mechanic/UX decisions carried forward from Xavier's game, reconfirmed here
 
