@@ -12,7 +12,7 @@ const MAX_KEYS := 1
 
 ## Bumped by hand on every deploy so the on-screen build tag (see main.gd)
 ## makes it obvious whether a device is showing a stale cached build.
-const BUILD_VERSION := "2026-08-02.5"
+const BUILD_VERSION := "2026-08-07.1"
 
 const SAVE_PATH := "user://progress.save"
 

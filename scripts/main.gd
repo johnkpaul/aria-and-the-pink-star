@@ -54,6 +54,13 @@ var _starting := false
 
 func _ready() -> void:
 	_ensure_generated_assets()
+
+	# Swaps every label in the game off Godot's built-in smooth sans and
+	# onto a pixel font that matches the artwork. Applied by walking the
+	# tree and hooking node_added, because Control theme lookup can't reach
+	# a Label parented to a CanvasLayer - see procedural_font.gd.
+	ProceduralFont.install(get_tree())
+
 	_center_ui_layers()
 
 	version_label.text = "v" + GameManager.BUILD_VERSION

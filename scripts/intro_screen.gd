@@ -78,7 +78,8 @@ func _ready() -> void:
 	_caption.offset_bottom = 848
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_caption.add_theme_font_size_override("font_size", 88)
+	_caption.autowrap_mode = TextServer.AUTOWRAP_WORD
+	_caption.add_theme_font_size_override("font_size", 70)
 	_caption.add_theme_color_override("font_color", CAPTION_COLOR)
 	_caption.modulate.a = 0.0
 	add_child(_caption)

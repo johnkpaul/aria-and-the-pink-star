@@ -41,19 +41,19 @@ func _ready() -> void:
 	_title_label.offset_bottom = 450
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_title_label.add_theme_font_size_override("font_size", 100)
+	_title_label.add_theme_font_size_override("font_size", 84)
 	_title_label.add_theme_color_override("font_color", TITLE_COLOR)
 	add_child(_title_label)
 
 	_story_label = Label.new()
-	_story_label.offset_left = 200
+	_story_label.offset_left = 100
 	_story_label.offset_top = 480
-	_story_label.offset_right = 1720
-	_story_label.offset_bottom = 680
+	_story_label.offset_right = 1820
+	_story_label.offset_bottom = 820
 	_story_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_story_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_story_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	_story_label.add_theme_font_size_override("font_size", 56)
+	_story_label.add_theme_font_size_override("font_size", 42)
 	_story_label.add_theme_color_override("font_color", STORY_COLOR)
 	add_child(_story_label)
 

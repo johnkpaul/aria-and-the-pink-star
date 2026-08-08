@@ -97,20 +97,20 @@ vertical_alignment = 1
 text = "HAPPY BIRTHDAY ARIA!"
 
 [node name="TitleLabel" type="Label" parent="TitleScreen"]
-offset_left = 160.0
+offset_left = 40.0
 offset_top = 216.0
-offset_right = 1760.0
+offset_right = 1880.0
 offset_bottom = 368.0
-theme_override_font_sizes/font_size = 104
+theme_override_font_sizes/font_size = 91
 horizontal_alignment = 1
 vertical_alignment = 1
 text = "ARIA AND THE PINK STAR"
 
 [node name="PrologueLabel" type="Label" parent="TitleScreen"]
-offset_left = 200.0
+offset_left = 120.0
 offset_top = 392.0
-offset_right = 1720.0
-offset_bottom = 528.0
+offset_right = 1800.0
+offset_bottom = 584.0
 theme_override_font_sizes/font_size = 46
 theme_override_colors/font_color = Color(1, 1, 1, 0.75)
 autowrap_mode = 3
@@ -120,9 +120,9 @@ text = "ARIA AND HER BROTHER ARE LOST IN OUTER SPACE - FIND 3 KEYS AND THE PINK 
 
 [node name="LevelButtons" type="HBoxContainer" parent="TitleScreen"]
 offset_left = 240.0
-offset_top = 540.0
+offset_top = 616.0
 offset_right = 1680.0
-offset_bottom = 820.0
+offset_bottom = 896.0
 theme_override_constants/separation = 48
 
 [node name="Level1Button" type="Button" parent="TitleScreen/LevelButtons"]

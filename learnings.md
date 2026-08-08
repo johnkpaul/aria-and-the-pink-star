@@ -251,3 +251,48 @@ Three separate on-device problems all traced back to two lines in `project.godot
   `viewAngle: front_facing` must be set on `POST /v1/projects`, not the per-generation
   prompt; and `creditsUsed` on a single-image generation was 2, double the naive per-image
   expectation. Worth trusting these as stable platform behavior, not one-off flukes.
+
+## The pixel font (added 2026-08-07)
+
+Aria shipped rendering every label in Godot's built-in fallback, **Open Sans
+SemiBold** — a smooth modern sans — on top of pixel art. Nothing was broken,
+so it never surfaced as a bug; it just made the game look like a prototype,
+and it looked inconsistent next to the sibling games once they were
+converted. `procedural_font.gd` (shared, byte-identical with `chip-game` and
+`xavier-game`) generates a 5x7 pixel font in code: no `.ttf`, nothing to
+license.
+
+**A pixel font is visually larger than Open Sans at the same nominal size**,
+because the sans's em includes ascender/descender space the pixel font
+doesn't use. Every screen overflowed and each one needed measuring:
+
+| Element | Was | Now | Why |
+|---|---|---|---|
+| Title | 104 | 91, wider box | measured 1848 units in a 1600 box — "STAR" ran off screen |
+| Prologue | 46 | 46, taller box | wrapped to 3 lines (180) in a 136 box, collided with the level buttons |
+| Tutorial caption | 88 | 70 | longest caption measured 1800 in a 1600 box |
+| Level title | 100 | 84 | "The Sticky Pink Planet" measured 1848 |
+| Level story | 56 | 42, bigger box | wrapped to 4 lines (320) in a 200 box |
+
+The arithmetic is worth doing rather than eyeballing: glyph advance is 6
+units at scale `floor(font_size / 7)`, and line height is 10 units at that
+same scale. That predicted every overflow exactly.
+
+One correction the calculation *doesn't* give you: **word wrapping breaks at
+noticeably fewer characters than a raw width division suggests.** The
+prologue fit ~38 chars per line where the arithmetic said 46, so it stayed
+three lines after the first attempt at widening. Screenshot after each pass.
+
+## `outline_size` silently does nothing with a bitmap font
+
+The MELT and FIND button labels used `theme_override_constants/outline_size`
+with a dark outline colour to stay legible on a bright pink button. A bitmap
+`FontFile` has no outline cache, so the outline renders nothing at all — no
+error, the text just quietly loses its contrast. Replaced with dark text,
+which is what the outline was simulating anyway.
+
+Both labels were also sitting in the bottom ~20% of a *circular* button,
+where the circle has curved in and the outer letters fall onto the dark
+background — "FIND" read as half-missing. Moved up into the solid band
+between the icon and the rim, after checking the chord width at that height
+(FIND is 144 units wide in a 322-unit chord).
