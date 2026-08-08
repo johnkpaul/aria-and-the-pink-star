@@ -341,3 +341,43 @@ whenever they were authored. Godot falls back to the text path and everything
 loads correctly, so this is console noise rather than a defect - but it will
 recur on every fresh checkout, and it buried a real warning
 (`ProceduralArt: all textures generated`) until it was read carefully.
+## The loading screen was advertising Godot, not birthdaycade
+
+For the whole ~38MB wasm download - by far the longest-lived screen in the
+product, and the very first thing a kid sees - every game showed the Godot
+robot and the words "Game engine". It is entirely replaceable, and the
+mechanism is worth writing down because it is spread across three places:
+
+- **`application/boot_splash/image`** is what the web export writes out as
+  `index.png`, and the HTML shell references it as `src="index.png"`. Set
+  this and the logo is gone. None of the games had it set, so all three
+  inherited the engine default.
+- **`application/boot_splash/bg_color`** feeds the `$GODOT_SPLASH_COLOR`
+  placeholder, which colours the loading overlay behind the image.
+- **`application/boot_splash/use_filter`** feeds `$GODOT_SPLASH_CLASSES`;
+  `false` yields `use-filter--false`, which is `image-rendering: pixelated`.
+  Essential for pixel art, otherwise the splash is smoothed as it scales.
+
+Three traps:
+
+- **Hardcoding a value where the template has a placeholder silently
+  disconnects the project setting.** A shell copy here had a literal
+  `#242424` where stock has `$GODOT_SPLASH_COLOR`, and literal splash
+  classes where stock has `$GODOT_SPLASH_CLASSES` - so `bg_color` and
+  `use_filter` were being ignored entirely.
+- **Only a fixed set of `$GODOT_*` placeholders is substituted**:
+  `CONFIG`, `HEAD_INCLUDE`, `PROJECT_NAME`, `SPLASH`, `SPLASH_CLASSES`,
+  `SPLASH_COLOR`, `THREADS_ENABLED`, `URL`. Anything else ships as literal
+  text. A shell here had invented `$GODOT_ICON32_PNG` /
+  `$GODOT_ICON180_PNG`, which shipped verbatim into production - so the
+  favicon and the add-to-home-screen icon were both broken links. Use
+  `$GODOT_HEAD_INCLUDE`, which Godot fills with the correct icon tags.
+- **The stock shell's bootstrap script is load-bearing** (feature
+  detection, service-worker fallback, failure reporting). Patch its CSS;
+  don't retype it.
+
+**Capturing the loading screen needs network throttling.** Served from
+localhost it is over in under 250ms, so an ordinary screenshot always lands
+on the title screen and it looks like nothing changed. Drive it over CDP
+with `Network.emulateNetworkConditions` (~10 Mbps) and shoot on a timer
+*without* awaiting the load event.
