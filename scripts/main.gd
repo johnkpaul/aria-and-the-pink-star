@@ -201,12 +201,21 @@ func _on_menu_requested() -> void:
 	_show_title_screen()
 
 
+## Must use ResourceLoader rather than FileAccess. In an exported build the
+## source .png files are not shipped - they are converted to imported .ctex
+## resources - so FileAccess.file_exists() reports false for every generated
+## asset and the game silently regenerates its entire art set on every
+## single launch, on the device, before the title screen appears. Nothing
+## errors; it just does a pile of pointless work at startup. This is the
+## fourth incarnation of this bug across the birthdaycade games.
+## ResourceLoader understands the import remaps and answers correctly in
+## both the editor and an export.
 func _ensure_generated_assets() -> void:
 	var probe_path := "res://generated_assets/portal.png"
-	if not FileAccess.file_exists(probe_path):
-		# Editor-convenience fallback only: an exported HTML5 build ships
-		# with generated_assets/ already baked in by build.sh, since
-		# preload() calls elsewhere need the files to exist at export time.
+	if not ResourceLoader.exists(probe_path):
+		# Editor-convenience fallback only: an exported build ships with
+		# generated_assets/ already baked in by build.sh, since preload()
+		# calls elsewhere need the files to exist at export time.
 		ProceduralArt.run_all()
 
 

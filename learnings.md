@@ -296,3 +296,48 @@ where the circle has curved in and the outer letters fall onto the dark
 background — "FIND" read as half-missing. Moved up into the solid band
 between the icon and the rim, after checking the chord width at that height
 (FIND is 144 units wide in a 322-unit chord).
+
+## Three bugs inherited from the shared scaffold (2026-08-07)
+
+All three were already known and fixed in a sibling repo. None of the fixes
+crossed, because nothing links the copies. This is the whole argument for
+diffing the scaffold files whenever a project is picked back up.
+
+- **The stuck touch button.** `touch_button.gd` handled release only inside
+  `_gui_input`, but a Godot Control never *captures* a touch for the rest of
+  its gesture - `_gui_input` fires only for events landing inside the rect at
+  that instant. A finger lifting a few pixels outside (a kid's tap, or any
+  fast tap) never delivered the release, `_is_pressed` stayed true forever,
+  and the guard in `_press()` silently swallowed every later tap. MELT and
+  FIND would just stop working. Fixed in `xavier-game` in July; this game
+  shipped it live regardless.
+
+- **Stale tutorial auto-advance timers.** Each card created a
+  `SceneTreeTimer` and never cancelled it, so tapping NEXT left the outgoing
+  card's timer pending; it fired partway through the next card and advanced
+  again. A few taps could rattle through the whole tutorial in about a
+  second.
+
+- **The generated-asset probe.** `FileAccess.file_exists()` on a
+  `res://generated_assets/*.png` path always returns false in an exported
+  build, because the source PNGs aren't shipped - they become imported
+  `.ctex` resources. So the game regenerated its entire art set on every
+  single launch, on the device, before the title screen. Caught only because
+  the browser console still printed `ProceduralArt: all textures generated`
+  in a production build. Use `ResourceLoader.exists()`, which understands
+  the import remaps. **Fourth** incarnation of this exact bug in this series.
+
+Each fix was proven with a control run that deliberately defeated it and
+confirmed the bug returned - otherwise you don't know your change is what's
+doing the work.
+
+## Known, not fixed: stale UIDs in scene files
+
+The browser console reports `invalid UID ... using text path instead` for
+several `generated_assets/` textures referenced from `.tscn` files.
+`generated_assets/` is gitignored and rebuilt by `build.sh`, which assigns
+fresh UIDs on each import, while the scenes still carry the UIDs from
+whenever they were authored. Godot falls back to the text path and everything
+loads correctly, so this is console noise rather than a defect - but it will
+recur on every fresh checkout, and it buried a real warning
+(`ProceduralArt: all textures generated`) until it was read carefully.

@@ -47,8 +47,14 @@ var _icon_rects: Array[TextureRect] = []
 var _caption: Label
 var _next_button: Button
 var _index := -1
-var _advancing := false
 var _visible_now := false
+var _hold_timer: SceneTreeTimer
+var _last_advance_msec := 0
+
+## Ignores a second advance landing within this many milliseconds of the
+## first. On touch the accidental double-tap is the common case, and two
+## taps that fast are never a genuine request to skip two cards.
+const ADVANCE_DEBOUNCE_MSEC := 300
 
 
 func _ready() -> void:
@@ -112,7 +118,13 @@ func play() -> void:
 
 
 func _next_card() -> void:
-	_advancing = false
+	# Cancel the outgoing card's auto-advance timer. Each card used to
+	# create a timer and never cancel it, so tapping NEXT left the previous
+	# card's timer still pending - it would fire partway through the *next*
+	# card and advance again. A few taps could rattle through the whole
+	# tutorial in about a second.
+	_cancel_hold_timer()
+
 	_index += 1
 	if _index >= _cards.size():
 		_finish()
@@ -133,13 +145,26 @@ func _next_card() -> void:
 		tw.tween_property(rect, "modulate:a", 1.0, FADE_TIME)
 	tw.tween_property(_caption, "modulate:a", 1.0, FADE_TIME)
 
-	get_tree().create_timer(CARD_HOLD).timeout.connect(_try_advance)
+	_hold_timer = get_tree().create_timer(CARD_HOLD)
+	# A plain method Callable rather than a lambda, so the connection is
+	# torn down automatically if this screen is freed before the timer
+	# fires - a lambda would happily resume on a freed node.
+	_hold_timer.timeout.connect(_try_advance)
+
+
+func _cancel_hold_timer() -> void:
+	if _hold_timer and _hold_timer.timeout.is_connected(_try_advance):
+		_hold_timer.timeout.disconnect(_try_advance)
+	_hold_timer = null
 
 
 func _try_advance() -> void:
-	if _advancing or not _visible_now:
+	if not _visible_now:
 		return
-	_advancing = true
+	var now := Time.get_ticks_msec()
+	if now - _last_advance_msec < ADVANCE_DEBOUNCE_MSEC:
+		return
+	_last_advance_msec = now
 	_next_card()
 
 

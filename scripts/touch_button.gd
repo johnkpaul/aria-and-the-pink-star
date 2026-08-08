@@ -36,13 +36,25 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			_press(event.index)
-		elif event.index == _touch_index:
-			_release()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_press(-1)
-		elif _touch_index == -1:
-			_release()
+
+
+## Release is handled globally rather than via _gui_input, because
+## _gui_input only fires for events that hit this Control's rect *at that
+## instant* - a Control never "captures" a touch for the rest of its
+## gesture the way native UI toolkits do. A quick tap where the finger
+## lifts even a few pixels outside the button (extremely common - a kid's
+## touch, or any fast tap) would otherwise leave _is_pressed stuck true
+## forever, silently swallowing every future tap via the guard in _press().
+func _input(event: InputEvent) -> void:
+	if not _is_pressed:
+		return
+	if event is InputEventScreenTouch and not event.pressed and event.index == _touch_index:
+		_release()
+	elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT and _touch_index == -1:
+		_release()
 
 
 func _press(idx: int) -> void:
